@@ -1,4 +1,4 @@
-AC_INIT([sfs-utils], [0.02], [proffk@linux.com])
+AC_INIT([sfs-utils], [1.00], [edos@linux.com])
 AM_INIT_AUTOMAKE([subdir-objects])
 
 AC_PROG_CC
