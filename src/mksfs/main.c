@@ -91,10 +91,7 @@ int main(int argc, char* argv[]) {
          * Try to open file 
          */
         int fd = open(argv[argc - 1], O_RDWR);
-        if (fd == -1 && argc == 2) 
-                usage(EXIT_SUCCESS);
-
-        if (fd == -1) {
+        if (fd == -1 || argc == 1) {
                 fprintf(stderr, "Invalid input file/device.\n");
                 usage(EXIT_INPFILE);
         }
