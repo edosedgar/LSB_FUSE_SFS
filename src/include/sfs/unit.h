@@ -18,7 +18,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #ifndef _SFS_UNIT_
 #define _SFS_UNIT_
-#include <bdev/blockdev.h>
+#include <bdev_jsteg/blockdev.h>
 #include <sfs/io.h>
 #include <sfs/defs.h>
  

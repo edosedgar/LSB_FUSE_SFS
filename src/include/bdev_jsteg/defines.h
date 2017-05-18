@@ -1,6 +1,6 @@
 /*
 <FUSE-based implementation of SFS (Simple File System)>
-    Copyright (C) 2016  <Klim Kireev>
+    Copyright (C) 2016  <Grigoriy Melnikov>
 
  This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -25,4 +25,17 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 typedef uint8_t  buf_t;
 typedef size_t   bnum_t;
 
-#endif
+
+#define JMAX_FILE 	(1<<16) // max number of file
+#define DCT_MIN_VALUE 	(1<<3) // min value of DCT coeff 
+
+#define LSB 		(1<<1) // number of mutable bits, 1 or 2
+#define LSBF 		(8 / LSB) // LSB frequency
+#define SB_BITMASK 	((1<<LSB)-1) // 0x3 - 2 significant bits, 
+				// 0x1 - 1 bit
+#define PREAMBLE_SIZE 	(32 / LSB) // preamble size = 4 x 4 (2 bits)
+
+#define START_PR 	0xFF
+#define END_PR 		0x00
+
+#endif // _BDEV_DEFINES_

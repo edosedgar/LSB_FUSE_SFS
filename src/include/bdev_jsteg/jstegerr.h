@@ -1,6 +1,6 @@
 /*
-<FUSE-based implementation of SFS (Simple File System)>
-    Copyright (C) 2016  <Klim Kireev>
+<FUSE-based implementation of LSB_SFS (Simple File System)>
+    Copyright (C) 2017  <Grigoriy Melnikov>
 
  This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -16,20 +16,25 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef _SFS_IO_
-#define _SFS_IO_
-#include <sfs/defs.h>
-#include <sfs/entry.h>
-#include <bdev_jsteg/blockdev.h>
-#include <stdint.h>
 
-size_t read_data(blockdev* dev, off_t offset, uint8_t* data, size_t size);
+#ifndef _JSTEGERR_
+#define _JSTEGERR_
 
-size_t write_data(blockdev* dev, off_t offset, uint8_t* data, size_t size);
+#include <jpeglib.h>
+#include <setjmp.h>
 
-size_t read_entry(blockdev* dev, off_t offset, entry* entry);
+/*
+ *  extended error handler struct
+ */
+struct jerror_mgr {
+	struct jpeg_error_mgr pub;
 
-size_t write_entry(blockdev* dev, off_t offset, entry* entry);
+	jmp_buf setjmp_buffer;	/* for return to caller */
+};
 
-int copy_block(blockdev* dev, off_t src, off_t dest, size_t size); 
-#endif
+typedef struct jerror_mgr* jerror_ptr;
+
+GLOBAL(int) 
+jerr_init(j_common_ptr cinfo, jerror_ptr jerr); 
+
+#endif // _JSTEGERR_
