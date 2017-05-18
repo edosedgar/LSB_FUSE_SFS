@@ -20,7 +20,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <sfs/defs.h>
 #include <sfs/debug.h>
 #include <sfs/entry.h>
-#include <bdev/blockdev.h>
+#include <bdev_jsteg/blockdev.h>
 #include <sfs/utils.h>
 
 size_t read_data(blockdev* dev, off_t offset, uint8_t* data, size_t size)

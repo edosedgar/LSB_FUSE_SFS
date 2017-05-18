@@ -34,6 +34,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <ctype.h>
 
 #include <mksfs/mksfs.h>
+#include <bdev_jsteg/jstegdev.h>
 
 static void usage(unsigned status);
 static size_t convert_size(char* parameter, off_t file_s);
@@ -51,6 +52,8 @@ int main(int argc, char* argv[]) {
         char*  index_size_s     = NULL;
         char*  block_size_s     = NULL;
         char*  label            = NULL;
+        filedev_data tmp_fdev;
+        blockdev tmp_bdev;
         /* Struct for getopt_long */
         static struct option const long_options[] = {
                 {"help", no_argument, NULL, 'h'},
@@ -90,6 +93,7 @@ int main(int argc, char* argv[]) {
         /* 
          * Try to open file 
          */
+        /*
         int fd = open(argv[argc - 1], O_RDWR);
         if (fd == -1 && argc == 2) 
                 usage(EXIT_SUCCESS);
@@ -98,17 +102,33 @@ int main(int argc, char* argv[]) {
                 fprintf(stderr, "Invalid input file/device.\n");
                 usage(EXIT_INPFILE);
         }
+        */
         /*
          * File size calculate and check it
          */
-        file_size = lseek(fd, 0, SEEK_END);
-        close(fd);
+        //file_size = lseek(fd, 0, SEEK_END);
+        //close(fd);
+
+
+        /*
+         * File size calculate and check it
+         */
+
+        if (jstegdev_create(&tmp_bdev, &tmp_fdev, DEFAULT_BLOCK_SIZE) != &tmp_bdev)
+                exit(EXIT_INPFILE);
+        tmp_fdev.dirname = argv[argc - 1];
+        //fprintf(stderr, "%s\n", tmp_fdev.dirname);
+        if (tmp_bdev.init(&tmp_bdev) != 0)
+                exit(EXIT_INPFILE);
+        file_size = tmp_bdev.size;
+        //fprintf(stderr, "file_size %lu\n", file_size);
         if (file_size < (MBR_SIZE + INDEX_MIN_SIZE)) {
                 fprintf(stderr, "Too small file size.\n");
                 fprintf(stderr, "%s %luB\n", "The smallest file size is", 
                                              MBR_SIZE + INDEX_MIN_SIZE);
                 exit(EXIT_FILELRG);
         }
+
         /* 
          * Handler blocksize data 
          */ 

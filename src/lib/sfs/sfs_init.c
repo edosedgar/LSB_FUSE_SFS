@@ -17,7 +17,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 #include <sfs/unit.h>
-#include <bdev/blockdev.h>
+#include <bdev_jsteg/blockdev.h>
 #include <sfs/mbr.h>
 #include <sfs/utils.h>
 #include <sfs/debug.h>

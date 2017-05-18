@@ -25,7 +25,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <mksfs/mksfs.h>
 #include <sfs/mbr.h>
 #include <sfs/entry.h>
-#include <bdev/filedev.h>
+#include <bdev_jsteg/jstegdev.h>
 #include <sfs/io.h>
 #include <sfs/debug.h>
 
@@ -41,7 +41,7 @@ int image_create(struct sfs_options sfs_opts)
                         "Total blocks: %lu blocks\n"
                         "Block size: %lu bytes\n"
                         "Label: %s\n"
-                        "File name: %s\n", 
+                        "Directory name: %s\n", 
                         ctime(&(sfs_opts.time_stamp)), sfs_opts.data_size,
                         sfs_opts.index_size, sfs_opts.total_block,
                         block_size, sfs_opts.label,
@@ -69,13 +69,12 @@ int image_create(struct sfs_options sfs_opts)
         size_t g_offset_vol =   sfs_opts.total_block * block_size -
                                 INDEX_ENTRY_SIZE;
         
-        fdev.fd = -1;
+        //fdev.fd = -1;
         SFS_TRACE("Create file device.");
-        if (filedev_create(&bdev, &fdev, block_size, 
-                           sfs_opts.total_block * block_size) != &bdev)
+        if (jstegdev_create(&bdev, &fdev, block_size) != &bdev)
                 return -1;
         SFS_TRACE("Init block device.");
-        fdev.filename = sfs_opts.file_name;
+        fdev.dirname = sfs_opts.file_name;
         if (bdev.init(&bdev) != 0)
                 return -1;
         /*
@@ -151,6 +150,8 @@ int image_create(struct sfs_options sfs_opts)
                 if (write_data(&bdev, i, (uint8_t*)(&remain_area), 
                                INDEX_ENTRY_SIZE) == -1) 
                         return -1;
+        
+        bdev.sync(&bdev);
         bdev.release(&bdev); 
         return 0;
 }

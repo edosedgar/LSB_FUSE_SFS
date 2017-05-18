@@ -19,8 +19,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef _BDEV_BLOCKDEV_
 #define _BDEV_BLOCKDEV_
 
-#include <bdev/defines.h>
-#include <sfs/defs.h>
+#include <bdev_jsteg/defines.h>
+//#include <sfs/defs.h>
 
 struct block_dev_t {
         void* dev_data;        /* Specific data dri device */

@@ -40,9 +40,12 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <sfs/debug.h>
 #include <sfs/statfs.h>
 #include <sfs/fixfs.h>
-#include <bdev/filedev.h>
+#include <bdev_jsteg/jstegdev.h>
 #include <sfs/mbr.h>
 #include <fuse/inode.h>
+
+/* workaround */
+#include <mksfs/mksfs.h>
 
 extern int sfs_errno;
 extern inode_map_t* inode_map;
@@ -154,10 +157,10 @@ static inline char* new_path(const char* path)
 static void* fuse_sfs_init()
 {
         SFS_TRACE("INIT");
-        uint8_t bs_p2 = 0;
-        uint64_t bs = 0;
-        uint64_t file_size = 0;
-        struct stat dstat;
+        //uint8_t bs_p2 = 0;
+        //uint64_t bs = 0;
+        //uint64_t file_size = 0;
+        //struct stat dstat;
         struct mbr_t mbr;
         entry entr;
         char Answer = '\0';
@@ -170,6 +173,7 @@ static void* fuse_sfs_init()
         /*
          * Try to recognize block_size
          */
+        /*
         int temp_fd = open(imagefile, O_RDONLY);
         fstat(temp_fd, &dstat);
         if (!(dstat.st_mode & S_IFBLK) &&
@@ -199,36 +203,37 @@ static void* fuse_sfs_init()
                 goto FAIL_EXIT;
         }
         close(temp_fd);
-        SFS_TRACE("BS: %lu, FS: %lu", bs, file_size);
+        */
+        //SFS_TRACE("BS: %lu, FS: %lu", bs, file_size);
         /*
          * Init fs
          */ 
-        fdev->fd = -1;
-        bdev = filedev_create(bdev, fdev, bs, file_size * bs);
-        fdev->filename = imagefile;
+        //fdev->fd = -1;
+        bdev = jstegdev_create(bdev, fdev, DEFAULT_BLOCK_SIZE);
+        fdev->dirname = imagefile;
         if (blockdev_init(bdev) != 0) {
                 perror("");
                 goto FAIL_EXIT;
         }
-
+        //file_size = bdev->size;
         if (sfs_init(sfs_description, bdev) < 0) {
                 fprintf(stderr, "The image was corrupted.\n");
+                bdev->sync(bdev);
                 bdev->release(bdev);
                 goto FAIL_EXIT;
         }
-
+        /*
         if (dstat.st_mtime - sfs_description->time > 1) {
                 fprintf(stderr, "Modification time and timestamp are differ\n"
                                 "WE DON'T GIVE ANY WARRANTY!\n");
-                /*fprintf(stderr, "ha mtime %lu time %lu", 
-                                dstat.st_mtime,
-                                sfs_description->time);*/
+         
                 while (Answer != 'Y' && Answer != 'n') {
                         fprintf(stderr, "Do you want to continue?\n"
                                         "Press [Y/n]\n");
                         Answer = getchar();
                 }
                 if (Answer == 'n') {
+                        bdev->sync(bdev);
                         bdev->release(bdev);
                         goto FAIL_EXIT;
                 }
@@ -236,6 +241,7 @@ static void* fuse_sfs_init()
                 fprintf(stderr, "Modification time and timestamp "
                                 "are equal\n");
         }
+        */
 
         read_data(sfs_description->bdev, 0, (uint8_t*) &mbr, 
                   sizeof(struct mbr_t));
@@ -246,6 +252,7 @@ static void* fuse_sfs_init()
                 fprintf(stderr, "Allocation of free space was " 
                                 "completely broken\n"
                                 "Filesystem cannot be mounted\n");
+                bdev->sync(bdev);
                 bdev->release(bdev);
                 goto FAIL_EXIT;
         }
@@ -265,6 +272,7 @@ static void* fuse_sfs_init()
                         Answer = getchar();
                 }
                 if (Answer == 'N') {
+                        bdev->sync(bdev);
                         bdev->release(bdev);
                         goto FAIL_EXIT;
                 }
@@ -276,12 +284,14 @@ static void* fuse_sfs_init()
          */
         if (inode_map_create() == -1) {
                 sfs_release(sfs_description);
+                sfs_description->bdev->sync(sfs_description->bdev);
                 sfs_description->bdev->release(sfs_description->bdev);
                 goto FAIL_EXIT;
         }
         if (index_lock_init() == -1) {
                 inode_map_delete();
                 sfs_release(sfs_description);
+                sfs_description->bdev->sync(sfs_description->bdev);
                 sfs_description->bdev->release(sfs_description->bdev);
                 goto FAIL_EXIT;
         }
@@ -300,6 +310,7 @@ static void fuse_sfs_destroy(void* param)
         SFS_TRACE("%s", "");
         inode_map_delete();
         sfs_release(sfs_description);
+        sfs_description->bdev->sync(sfs_description->bdev);
         sfs_description->bdev->release(sfs_description->bdev);
         free(sfs_description->bdev->dev_data);
         free(sfs_description->bdev);
@@ -379,6 +390,7 @@ static int fuse_sfs_release(const char* path, struct fuse_file_info* fi)
 static int fuse_sfs_flush(const char *path, struct fuse_file_info* fi)
 {
         SFS_TRACE("FLUSH path %s", path);
+        sfs_description->bdev->sync(sfs_description->bdev);
         return 0;
 }
 
@@ -726,7 +738,7 @@ static struct fuse_operations sfs_oper = {
 /* +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 
 int main(int argc, char* argv[]) {
-        int image_fd = 0;
+       // int image_fd = 0;
         struct stat st;
         setlocale(LC_ALL, "");
         /*
@@ -752,6 +764,7 @@ int main(int argc, char* argv[]) {
         /*
          * Check on exist image
          */
+        /*
         image_fd = open(argv[optind], O_RDWR);
         if (image_fd == -1) {
                 fprintf(stderr, "Supplied image file name: \"%s\"\n", 
@@ -760,6 +773,7 @@ int main(int argc, char* argv[]) {
                 exit(EXIT_FAILURE);
         };
         close(image_fd);
+        */
         /*
          * Check on exist directory
          */
