@@ -4,4 +4,11 @@ FUSE-based implementation of SFS (Simple File System)
 # install
 
 autoreconf --install
-./configure 
+./configure
+
+# features
+Added:
+	LSB Steganography (DCT coefficients)
+
+# issues
+There is no oportunity to create file system second time on pictures been in use.
