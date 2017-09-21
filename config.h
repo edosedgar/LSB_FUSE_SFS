@@ -5,13 +5,13 @@
 #define PACKAGE "sfs-utils"
 
 /* Define to the address where bug reports for this package should be sent. */
-#define PACKAGE_BUGREPORT "proffk@linux.com"
+#define PACKAGE_BUGREPORT "edos@linux.com"
 
 /* Define to the full name of this package. */
 #define PACKAGE_NAME "sfs-utils"
 
 /* Define to the full name and version of this package. */
-#define PACKAGE_STRING "sfs-utils 0.02"
+#define PACKAGE_STRING "sfs-utils 1.00"
 
 /* Define to the one symbol short name of this package. */
 #define PACKAGE_TARNAME "sfs-utils"
@@ -20,7 +20,7 @@
 #define PACKAGE_URL ""
 
 /* Define to the version of this package. */
-#define PACKAGE_VERSION "0.02"
+#define PACKAGE_VERSION "1.00"
 
 /* Version number of package */
-#define VERSION "0.02"
+#define VERSION "1.00"
