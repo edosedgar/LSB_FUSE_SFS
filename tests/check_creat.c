@@ -26,15 +26,15 @@ START_TEST(test_sfs_creat)
         char teststr2[] = "testfiletestfiletestfiletestfiletestfile/test";
 
         fdev.fd = -1;
-        
+
         filedev_create(&bdev, &fdev, 512, TRUE_SIZE);
 
         fdev.filename = "testfile";
         blockdev_init(&bdev);
 
         sfs_init(&fs, &bdev);
-        
-        ck_assert_int_eq(fs.bdev, &bdev);        
+
+        ck_assert_ptr_eq(fs.bdev, &bdev);
         ck_assert_int_eq(fs.time, TI_TIME);
         ck_assert_int_eq(fs.entry_start, TI_ENTRY_START);
         ck_assert_int_eq(fs.del_begin, TI_DEL_BEGIN);

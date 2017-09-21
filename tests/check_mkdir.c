@@ -22,15 +22,15 @@ START_TEST(test_sfs_creat)
 //        char teststr2[] = "testfiletestfiletestfiletestfiletestfile/test";
 
         fdev.fd = -1;
-        
+
         filedev_create(&bdev, &fdev, 512, TRUE_SIZE);
 
         fdev.filename = TESTFILE;
         blockdev_init(&bdev);
 
         sfs_init(&fs, &bdev);
-        
-        ck_assert_int_eq(fs.bdev, &bdev);        
+
+        ck_assert_ptr_eq(fs.bdev, &bdev);
 
         ck_assert(sfs_creat(&fs, "testfile") == 0);
         ck_assert(sfs_mkdir(&fs, teststr) == -1);

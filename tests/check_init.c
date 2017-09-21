@@ -24,15 +24,15 @@ START_TEST(test_sfs_init)
         sfs_unit fs;
 
         fdev.fd = -1;
-        
+
         filedev_create(&bdev, &fdev, 256, TRUE_SIZE);
 
         fdev.filename = TRUE_IMAGE;
         blockdev_init(&bdev);
 
         sfs_init(&fs, &bdev);
-        
-        ck_assert_int_eq(fs.bdev, &bdev);        
+
+        ck_assert_ptr_eq(fs.bdev, &bdev);
         ck_assert_int_eq(fs.time, TI_TIME);
         ck_assert_int_eq(fs.entry_start, TI_ENTRY_START);
         ck_assert_int_eq(fs.del_begin, TI_DEL_BEGIN);
@@ -41,7 +41,7 @@ START_TEST(test_sfs_init)
         bdev.release(&bdev);
         ck_assert(errno == 0);
 END_TEST
- 
+
 
 static Suite* init_suite(void)
 {

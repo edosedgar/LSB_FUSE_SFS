@@ -24,15 +24,15 @@ START_TEST(test_sfs_readdir)
         int i = 0;
 
         fdev.fd = -1;
-        
+
         filedev_create(&bdev, &fdev, 512, TRUE_SIZE);
 
         fdev.filename = TESTFILE;
         blockdev_init(&bdev);
 
         sfs_init(&fs, &bdev);
-        
-        ck_assert_int_eq(fs.bdev, &bdev);        
+
+        ck_assert_ptr_eq(fs.bdev, &bdev);
 
         ck_assert(sfs_creat(&fs, "testfile1") == 0);
         ck_assert(sfs_creat(&fs, "testfile2") == 0);
