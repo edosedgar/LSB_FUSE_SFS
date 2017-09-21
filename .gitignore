@@ -43,6 +43,7 @@
 *.trs
 configure
 *.m4
+config.h
 
 # vim files
 *.swp
