@@ -17,4 +17,13 @@ AC_CONFIG_FILES([
 
 PKG_CHECK_MODULES([CHECK], [check])
 
+AC_CHECK_HEADERS(fuse.h, AC_CHECK_LIB(fuse, fuse_main, [],
+    [ AC_MSG_ERROR([libfuse is required]) ]), 
+    [ AC_MSG_ERROR([libfuse is required]) ],
+[
+#ifndef _FILE_OFFSET_BITS
+#define _FILE_OFFSET_BITS 64
+#endif
+])
+
 AC_OUTPUT
