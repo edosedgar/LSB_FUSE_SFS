@@ -56,3 +56,5 @@ un.*
 *image
 
 # for our program
+config.h
+config.h.in
