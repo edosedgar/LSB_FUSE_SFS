@@ -16,30 +16,103 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#define _GNU_SOURCE
-#include <config.h>
+#include "config.h"
 
+#include <ctype.h>
+#include <dirent.h>
+#include <errno.h>
+#include <fcntl.h>
+#include <getopt.h>
+#include <math.h>
+#include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <time.h>
-#include <errno.h>
-#include <unistd.h>
-#include <getopt.h>
-#include <stddef.h>
-#include <fcntl.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <math.h>
 #include <string.h>
-#include <ctype.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <time.h>
+#include <unistd.h>
 
-#include <mksfs/mksfs.h>
-#include <bdev_jsteg/jstegdev.h>
+#include "bdev_jsteg/jstegdev.h"
+#include "generic/error_prints.h"
+#include "mksfs/mksfs.h"
 
-static void usage(unsigned status);
-static size_t convert_size(char* parameter, off_t file_s);
+#ifndef HAVE_PROGRAM_INVOCATION_NAME
+char *program_invocation_name;
+#endif
+
+void
+die(void)
+{
+        exit(1);
+}
+
+/*
+ * Print help and extended help
+ */
+static void usage()
+{
+        puts("usage: mksfs [OPTIONS] DIR\n"
+             "\n"
+             "Main:\n"
+             "  -m   Metadata size\n"
+             "       Default is 5% of file size, but no more than 10M\n"
+             "  -b   Block size (in bytes). It should be more than\n"
+             "       128B and be power of 2 (default is 512B)\n"
+             "  -l   UTF-8 volume name\n"
+             "\n"
+             "Miscellaneous:\n"
+             "  -h   print help message");
+        exit(0);
+}
+
+/*
+ * Convert size suffix to number(B, K, M, G)
+ * Number without postfix is handled as B
+ */
+static size_t convert_size(char* parameter, off_t file_s) 
+{
+        ssize_t number = 0;
+        char err_c = 0;
+        char last_sym = 0;
+        int ret_code = 0;
+        errno = 0;
+        /* Try to recognize a number */
+        ret_code = sscanf(parameter, "%lu%c%c", &number, &last_sym, &err_c);
+        if (err_c != '\0' || ret_code == 0 || number < 0) {
+                errno = EINVAL;
+                return (size_t)(-1);
+        }
+        /* Try to recognize a unit of size */
+        switch (last_sym) {
+        case '%':
+                if (file_s != 0)
+                        return (size_t)(file_s * number / 100L);
+                break;
+        case 'B':
+        case 'b':
+        case '\0':
+                return number;
+        case 'K':
+        case 'k':
+                return 1024 * number;
+        case 'M':
+        case 'm':
+                return 1024 * 1024 * number;
+        case 'G':
+        case 'g':
+                return 1024 * 1024 * 1024 * number;
+        default:
+                errno = EINVAL;
+                return (size_t)(-1);
+        }
+        errno = EINVAL;
+        return (size_t)(-1);
+}
 
 int main(int argc, char* argv[]) {
+        extern int opterr, optopt;
+        opterr = 0;
         int opt = 0;
         struct sfs_options sfs_opts;
         /* Service variables */
@@ -54,25 +127,21 @@ int main(int argc, char* argv[]) {
         char*  label            = NULL;
         filedev_data tmp_fdev;
         blockdev tmp_bdev;
-        /* Struct for getopt_long */
-        static struct option const long_options[] = {
-                {"help", no_argument, NULL, 'h'},
-                {"metadata", required_argument, NULL, 'm'},
-                {"block-size", required_argument, NULL, 'b'},
-                {"label", required_argument, NULL, 'l'},
-                {"version", no_argument, NULL, 'v'},
-                {NULL, 0, NULL, 0}
-        };
-        if (argc == 1) {
-                fprintf(stderr, "No parameters.\n");
-                usage(EXIT_FAILURE);
+
+        if (!program_invocation_name || !*program_invocation_name) {
+                static char name[] = "mksfs";
+                program_invocation_name =
+                        (argv[0] && *argv[0]) ? argv[0] : name;
         }
+
+        if (argc == 1)
+                error_msg_and_help("must have OPTIONS");
+
         /* Get user options */
-        while ((opt = getopt_long(argc, argv, "hm:b:l:", 
-                long_options, NULL)) != -1) {
-                switch (opt) {    
+        while ((opt = getopt(argc, argv, "hm:b:l:")) != -1)
+                switch (opt) {
                 case 'h':
-                        usage(EXIT_SUCCESS);
+                        usage();
                         break;
                 case 'm':
                         index_size_s = optarg; 
@@ -83,29 +152,20 @@ int main(int argc, char* argv[]) {
                 case 'l':
                         label = optarg;
                         break;
-                case 'v':
-                        usage(EXIT_SUCCESS);
-                        break; 
                 default:
-                        usage(EXIT_FAILURE);
-                }                     
-        }
+                        error_msg_and_help("unrecognized option '%c'", optopt);
+                }
         /* 
-         * Try to open file 
+         * Try to open directory
          */
-        /*
-        int fd = open(argv[argc - 1], O_RDWR);
-        if (fd == -1 || argc == 1) {
-                fprintf(stderr, "Invalid input file/device.\n");
-                usage(EXIT_INPFILE);
-        }
-        */
+        DIR* dir = opendir(argv[argc - 1]);
+        if (dir == NULL)
+                error_msg(strerror(errno));
         /*
          * File size calculate and check it
          */
         //file_size = lseek(fd, 0, SEEK_END);
         //close(fd);
-
 
         /*
          * File size calculate and check it
@@ -119,13 +179,9 @@ int main(int argc, char* argv[]) {
                 exit(EXIT_INPFILE);
         file_size = tmp_bdev.size;
         //fprintf(stderr, "file_size %lu\n", file_size);
-        if (file_size < (MBR_SIZE + INDEX_MIN_SIZE)) {
-                fprintf(stderr, "Too small file size.\n");
-                fprintf(stderr, "%s %luB\n", "The smallest file size is", 
-                                             MBR_SIZE + INDEX_MIN_SIZE);
-                exit(EXIT_FILELRG);
-        }
-
+        if (file_size < (MBR_SIZE + INDEX_MIN_SIZE))
+                error_msg_and_die("image size %luB is less than %luB",
+                                  file_size, MBR_SIZE + INDEX_MIN_SIZE);
         /* 
          * Handler blocksize data 
          */ 
@@ -134,28 +190,23 @@ int main(int argc, char* argv[]) {
         else {
                 block_size = convert_size(block_size_s, 0);
                 /* block size must be greater than 128B */
-                if (block_size <= DEFAULT_MIN_BLOCK/2 || errno == EINVAL) {
-                        fprintf(stderr, "Invalid block size.\n");
-                        usage(EXIT_NOBS);
-                }
+                if (block_size <= DEFAULT_MIN_BLOCK/2 || errno == EINVAL)
+                        error_msg_and_help("invalid block size");
                 long int divisor = DEFAULT_MIN_BLOCK;
                 /* Check on the power of two */
                 while (divisor > 0 && (divisor != block_size)) 
                         divisor <<= 1;
 
-                if (divisor < 0) {
-                        fprintf(stderr, "Block size isn't the power of 2.\n");
-                        usage(EXIT_BSDGR2);
-                }
+                if (divisor < 0)
+                        error_msg_and_die("block size isn't the power "
+                                          "of 2");
         }
-        if (block_size > file_size) {
-                fprintf(stderr, "Block size more than file size.\n");
-                usage(EXIT_BSLRG);
-        }
-        if (file_size % block_size != 0) {
-                fprintf(stderr, "Block size isn't a divisor of data size.\n");
-                usage(EXIT_BSDIV);
-        }
+        if (block_size > file_size)
+                error_msg_and_die("block size cannot be more than %luB "
+                                  "(image size)", file_size);
+        if (file_size % block_size != 0)
+                error_msg_and_die("block size isn't a divisor of %luB "
+                                  "(image size)", file_size);
         /*
          * Calculate reserved area size in bytes
          */
@@ -164,7 +215,7 @@ int main(int argc, char* argv[]) {
         else
                 rsrvd_size = block_size;
         /* 
-         * Handler index size 
+         * Handle index size 
          */
         if (index_size_s == NULL) {
                 double buf = DEFAULT_INDEX_PERCENT * file_size / 100L;
@@ -175,37 +226,31 @@ int main(int argc, char* argv[]) {
 
         } else {
                 index_size = convert_size(index_size_s, file_size);
-                if (index_size == 0 || errno == EINVAL) {
-                        fprintf(stderr, "Invalid metadata size.\n");
-                        usage(EXIT_NOMD);
-                }
-                
+                if (index_size == 0 || errno == EINVAL)
+                        error_msg_and_die("invalid metadata size");
         }
         /* Auto align to BLOCK_SIZE (up) */
-        if (index_size % block_size != 0)
+        if (index_size % block_size != 0) {
                 index_size += block_size - index_size % block_size; 
-        /* Check index size(maybe file size too small) */
-        if (index_size > (file_size - rsrvd_size)) {
-                fprintf(stderr, "Index area size more or equal than file"
-                                " size.\n");
-                usage(EXIT_MDLRG);
+                error_msg("metadata size was aligned to %luB", index_size);
         }
+        /* Check index size(maybe file size too small) */
+        if (index_size > (file_size - rsrvd_size))
+                error_msg_and_die("metadata size cannot be more or equal "
+                                  "than image size %luB",
+                                  file_size - rsrvd_size);
         /* Check size of index area */
-        if (index_size < INDEX_MIN_SIZE) {
-                fprintf(stderr, "Index part size too small.\n");
-                usage(EXIT_MDSML);
-        } 
+        if (index_size < INDEX_MIN_SIZE)
+                error_msg_and_die("metadata size cannot be smaller than "
+                                  "%lu", INDEX_MIN_SIZE);
         /*
          * Handler label name
          */
         unsigned length = 0;
         int i = 0;
-        if (label != NULL && (length = strlen(label)) >= VOLUME_NAME_SIZE) {
-                fprintf(stderr, "%s %ld %s", "Label shouldn't be longer"
-                                " than ", VOLUME_NAME_SIZE - 1,
-                                " symbols.\n");
-                usage(EXIT_LBL);
-        }
+        if (label != NULL && (length = strlen(label)) >= VOLUME_NAME_SIZE)
+                error_msg_and_die("label cannot be longer than %ld symbols",
+                                  VOLUME_NAME_SIZE - 1);
         /* Check on unsupported symbols */ 
         for (i = 0; i < length; i++)
                 if (label[i] < 0x20   || 
@@ -214,11 +259,9 @@ int main(int argc, char* argv[]) {
                     label[i] == ':'   || label[i] == '<'   ||
                     label[i] == '>'   || label[i] == '?'   ||
                     label[i] == '\\'  || label[i] == 0x5C  ||
-                    label[i] == 0x7F  || label[i] == 0xA0) {
-                        fprintf(stderr, "Unsupported symbol \'%c\' "
-                                        "in volume name.\n", label[i]);
-                        usage(EXIT_LBL);
-                }
+                    label[i] == 0x7F  || label[i] == 0xA0)
+                        error_msg_and_die("unsupported symbol \'%c\' "
+                                          "in volume name", label[i]);
         /*
          * Start to flll fields of options struct
          */
@@ -241,7 +284,8 @@ int main(int argc, char* argv[]) {
                 strcpy(sfs_opts.label, label);
         else 
                 sfs_opts.label[0] = '\0';
-        sfs_opts.file_name = (char*) calloc((strlen(argv[argc - 1]) + 1), sizeof(char));
+        sfs_opts.file_name = calloc((strlen(argv[argc - 1]) + 1),
+                                    sizeof(char));
         strcpy(sfs_opts.file_name, argv[argc - 1]);
         /*
          * Create empty SFS image 
@@ -252,67 +296,4 @@ int main(int argc, char* argv[]) {
         }
         free(sfs_opts.file_name);
         return EXIT_SUCCESS;
-}
-
-/*
- * Print help and extended help
- */
-static void usage(unsigned status) 
-{
-        if (status != EXIT_SUCCESS) 
-                fprintf(stderr, "Try 'mksfs --help' for more information.\n");
-        else {
-                printf("Usage: mksfs [OPTIONS] FILE\n");
-                printf("\n"
-                       "-m, --metadata    Size of metadata part              \n"
-                       "                  Default 5%% of file size, but no   \n"
-                       "                  more than 10M.                     \n"
-                       "-b, --block-size  Number of bytes in each block.     \n"
-                       "                  It should be more than 128B and    \n"
-                       "                  block_size = 2^N, N is integer.    \n"
-                       "                  Default is 512B.                   \n"
-                       "-l, --label       Volume name in UTF-8, it shouldn't \n"
-                       "                  more than 51 symbols.\n"); 
-        }
-        exit(status);
-}     
-
-/*
- * Convert other form of size(B, K, M, G)
- * Number without postfis is handlers as B
- */
-static size_t convert_size(char* parameter, off_t file_s) 
-{
-        ssize_t number = 0;
-        char err_c = 0;
-        char last_sym = 0;
-        int ret_code = 0;
-        errno = 0;
-        /* Try to recognize a number */
-        ret_code = sscanf(parameter, "%lu%c%c", &number, &last_sym, &err_c);
-        if (err_c != '\0' || ret_code == 0 || number < 0) {
-                errno = EINVAL;
-                return (size_t)(-1);
-        }
-        /* Try to recognize a unit of size */
-        switch (last_sym) {
-        case '%':
-                if (file_s != 0)
-                        return (size_t)(file_s * number / 100L);
-                break;
-        case 'B':
-        case '\0':
-                return number;
-        case 'K':
-                return 1024 * number;
-        case 'M':
-                return 1024 * 1024 * number;
-        case 'G':
-                return 1024 * 1024 * 1024 * number;
-        default:
-                errno = EINVAL;
-                return (size_t)(-1);
-        }
-        errno = EINVAL;
-        return (size_t)(-1);
 }
