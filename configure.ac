@@ -1,9 +1,13 @@
-AC_INIT([sfs-utils], [1.00], [edos@linux.com])
+AC_PREREQ(2.57)
+
+AC_INIT([sfs-utils], [1.00], [none])
+AC_COPYRIGHT([Copyright (c) 2016-2017 The sfs-utils developers.])
 AM_INIT_AUTOMAKE([subdir-objects])
 
 AC_PROG_CC
+AC_GNU_SOURCE
 AM_PROG_AR
-AC_PROG_RANLIB 
+AC_PROG_RANLIB
 
 AC_CONFIG_HEADERS([config.h])
 AC_CONFIG_FILES([
