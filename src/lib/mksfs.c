@@ -1,6 +1,6 @@
 /*
 <FUSE-based implementation of SFS (Simple File System)>
-    Copyright (C) 2016  <Edgar Kaziahmedov>
+    Copyright (C) 2016  <Edgar Kaziakhmedov>
 
  This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -16,11 +16,11 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include <string.h>
-#include <stdlib.h>
-#include <time.h>
-#include <stdio.h>
 #include <math.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <time.h>
 
 #include <mksfs/mksfs.h>
 #include <sfs/mbr.h>
@@ -35,18 +35,18 @@ int image_create(struct sfs_options sfs_opts)
         /*
          * Print volume info 
          */
-        fprintf(stdout, "\nTime stamp: %s"
-                        "Data size: %lu blocks\n"
-                        "Index size: %lu bytes\n"
-                        "Total blocks: %lu blocks\n"
-                        "Block size: %lu bytes\n"
-                        "Label: %s\n"
-                        "File name: %s\n", 
+        fprintf(stdout, "\nTime stamp-----------> %s"
+                        "Data size------------> %lu blocks\n"
+                        "Index size-----------> %lu bytes\n"
+                        "Total blocks---------> %lu blocks\n"
+                        "Block size-----------> %lu bytes\n"
+                        "Label----------------> %s\n"
+                        "Directory name-------> %s\n", 
                         ctime(&(sfs_opts.time_stamp)), sfs_opts.data_size,
                         sfs_opts.index_size, sfs_opts.total_block,
                         block_size, sfs_opts.label,
                         sfs_opts.file_name); 
-                              
+
         /*
          * Init file and device
          */
