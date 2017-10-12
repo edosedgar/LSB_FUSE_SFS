@@ -1,6 +1,6 @@
 /*
 <FUSE-based implementation of SFS (Simple File System)>
-    Copyright (C) 2016  <Edgar Kaziahmedov>
+    Copyright (C) 2016-2017  <Edgar Kaziakhmedov>
 
  This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -790,7 +790,7 @@ int main(int argc, char* argv[]) {
         /*
          * Call FUSE
          */
-        int ret = fuse_main(nargc, nargv, &sfs_oper);        
+        int ret = fuse_main(nargc, nargv, &sfs_oper);
         free(nargv);
         return ret;
 }
