@@ -46,7 +46,7 @@ typedef struct jdecompress_state_t {
 	JBLOCKARRAY row_ptrs[MAX_COMPONENTS];
 } jdecompress_state;
 
-GLOBAL(void)
+GLOBAL(int)
 jdecompress_create(jdecompress_state* cinfo_ptr, FILE* file);
 
 GLOBAL(void)
@@ -67,9 +67,11 @@ typedef struct jsteg_entry_t {
 		void (*read_data) (struct jsteg_entry_t* jentry);
 		void (*write_data) (struct jsteg_entry_t* jentry);
 		void (*jentry_release) (struct jsteg_entry_t* jentry);
+		void (*write_preamble) (struct jsteg_entry_t* jentry);
+		int (*read_preamble) (struct jsteg_entry_t* jentry);
 } jdev_entry;
 
 GLOBAL(jdev_entry*)
-jentry_init(FILE* file, uint16_t* jindex);
+jentry_init(FILE* file);
 
 #endif // _JSTEGENTRY_

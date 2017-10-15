@@ -35,6 +35,7 @@ struct block_dev_t {
         int (*init) (struct block_dev_t* dev);
         int (*sync) (struct block_dev_t* dev);
         int (*release) (struct block_dev_t* dev);
+        int (*build) (struct block_dev_t* dev);
 };
 
 typedef struct block_dev_t blockdev;

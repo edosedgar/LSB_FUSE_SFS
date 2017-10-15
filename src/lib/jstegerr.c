@@ -19,6 +19,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 //#include <sys/types.h>
 #include <stdlib.h>
 #include <stdio.h>
+
 #include <bdev_jsteg/jstegerr.h>
 
 METHODDEF(void)
@@ -43,8 +44,7 @@ jerr_init(j_common_ptr cinfo, jerror_ptr jerr)
 
   	/* Establish the setjmp return context for my_error_exit to use. */
 	if (setjmp(jerr->setjmp_buffer)) {
-    		//jpeg_destroy_decompress(cinfo);
-		return -1;
+		return JPEG_ERROR;
 	}
 
 	return 0;

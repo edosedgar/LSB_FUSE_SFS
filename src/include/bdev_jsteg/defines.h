@@ -38,4 +38,18 @@ typedef size_t   bnum_t;
 #define START_PR 	0xFF
 #define END_PR 		0x00
 
+/* Format of preamble:
+ * [START_PR][uint16_t jindex][END_PR]
+ */
+#define PREAMBLE_INIT(preamble, index) do { \
+    (preamble).bytes[0] = START_PR; \
+    (preamble).bytes[3] = END_PR; \
+    *(uint16_t*)((preamble).bytes + 1) = (index); \
+} while(0);
+
+#define PREAMBLE_INDEX(preamble) (\
+    ((preamble).bytes[0] == START_PR && (preamble).bytes[3] == END_PR) \
+    ? *(uint16_t*)((preamble).bytes + 1) : -1 \
+)
+
 #endif // _BDEV_DEFINES_

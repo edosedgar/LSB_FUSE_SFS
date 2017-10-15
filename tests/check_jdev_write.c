@@ -6,7 +6,7 @@
 #include <stdio.h>
 #include <errno.h>
 
-#define TESTDIR_NAME "pictures"
+#define TESTDIR_NAME "tests/pictures"
 #define TESTMSG "Hello, world!"
 #define BLOCK_SIZE 255
 
@@ -69,7 +69,7 @@ START_TEST(test_jdev_write)
         fprintf(stderr, "BUFFER %s\n", buf);
         bdev.read(&bdev, out_buf, BLOCK_SIZE * 2, 8);
         fprintf(stderr, "OUT_BUFFER %s\n", out_buf);
-        filedev_dump(&bdev, BLOCK_SIZE);
+        //filedev_dump(&bdev, BLOCK_SIZE);
         ck_assert(strncmp((void*) buf, (void*) out_buf, BLOCK_SIZE * 2) == 0);
 
         // read-write test within two different session
@@ -80,7 +80,7 @@ START_TEST(test_jdev_write)
         for (entry = FDEV->entries; entry != end; entry++)
                 entry->read_data(entry);
 
-        filedev_dump(&bdev, BLOCK_SIZE);
+        //filedev_dump(&bdev, BLOCK_SIZE);
 
         // fsync test
         FDEV->entries[0].is_available = 0;
@@ -88,7 +88,6 @@ START_TEST(test_jdev_write)
         FDEV->entries[0].read_data(FDEV->entries);
         ck_assert(strncmp((void*) FDEV->entries[0].data, 
                 (void*) in_buf, sizeof(in_buf)) == 0);
-
 
         bdev.release(&bdev);
         //filedev_dump(&bdev, BLOCK_SIZE);
@@ -100,19 +99,20 @@ START_TEST(test_jdev_write)
         bdev.init(&bdev);
 
 
-        fprintf(stderr, "jfilenum %d\n", FDEV->jfile_num);
+        fprintf(stderr, "jfilenum %lu\n", FDEV->jfile_num);
         bdev.read(&bdev, buf, BLOCK_SIZE * 2, 8);
-
         fprintf(stderr, "BUF %s\n", buf);
+        fprintf(stderr, "OUT %s\n", out_buf);
         //filedev_dump(&bdev, BLOCK_SIZE);
+        
+        // This test doesn't work
         ck_assert(strncmp((void*) buf, (void*) out_buf, BLOCK_SIZE * 2) == 0);
-
 
         //ck_abort();
 
         free(buf);
         free(out_buf);
-        bdev.release(&bdev);        
+        bdev.release(&bdev); 
 END_TEST
 
 #undef FDEV
