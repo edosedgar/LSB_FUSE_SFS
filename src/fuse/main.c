@@ -207,7 +207,7 @@ static void* fuse_sfs_init()
         //SFS_TRACE("BS: %lu, FS: %lu", bs, file_size);
         /*
          * Init fs
-         */ 
+         */
         //fdev->fd = -1;
         bdev = jstegdev_create(bdev, fdev, DEFAULT_BLOCK_SIZE);
         fdev->dirname = imagefile;

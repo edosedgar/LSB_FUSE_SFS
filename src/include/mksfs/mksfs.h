@@ -29,7 +29,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #define MBR_SIZE (size_t)512
 #define MIN_NUM_ENTRY 2
 #define BEGIN_POWER_OF_BS 7
-#define INDEX_MIN_SIZE MIN_NUM_ENTRY*INDEX_ENTRY_SIZE 
+#define INDEX_MIN_SIZE MIN_NUM_ENTRY*INDEX_ENTRY_SIZE
 
 enum exit_codes {
         EXIT_INPFILE = EXIT_FAILURE + 1,
@@ -45,7 +45,7 @@ enum exit_codes {
 };
 
 /*
- * Main struct, that describe options for creation 
+ * Main struct, that describe options for creation
  * a SFS file system
  */
 struct sfs_options {
@@ -59,6 +59,6 @@ struct sfs_options {
         char* file_name;
 };
 
-int image_create(struct sfs_options sfs_opts);
+int image_create(struct sfs_options sfs_opts, blockdev* bdev);
 
 #endif

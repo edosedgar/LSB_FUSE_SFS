@@ -1,6 +1,6 @@
 /*
 <FUSE-based implementation of SFS (Simple File System)>
-    Copyright (C) 2016  <Edgar Kaziahmedov>
+    Copyright (C) 2016-2017  <Edgar Kaziakhmedov>
 
  This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -57,8 +57,8 @@ static void usage()
              "Main:\n"
              "  -m   Metadata size\n"
              "       Default is 5% of file size, but no more than 10M\n"
-             "  -b   Block size (in bytes). It should be more than\n"
-             "       128B and be power of 2 (default is 512B)\n"
+      //     "  -b   Block size (in bytes). It should be more than\n"
+      //     "       128B and be power of 2 (default is 512B)\n"
              "  -l   UTF-8 volume name\n"
              "\n"
              "Miscellaneous:\n"
@@ -70,7 +70,7 @@ static void usage()
  * Convert size suffix to number(B, K, M, G)
  * Number without postfix is handled as B
  */
-static size_t convert_size(char* parameter, off_t file_s) 
+static size_t convert_size(char* parameter, off_t file_s)
 {
         ssize_t number = 0;
         char err_c = 0;
@@ -123,10 +123,10 @@ int main(int argc, char* argv[]) {
         size_t index_sz_perblk  = 0;
         off_t  file_size        = 0;
         char*  index_size_s     = NULL;
-        char*  block_size_s     = NULL;
+        //char*  block_size_s     = NULL;
         char*  label            = NULL;
-        filedev_data tmp_fdev;
-        blockdev tmp_bdev;
+        filedev_data fdev;
+        blockdev bdev;
 
         if (!program_invocation_name || !*program_invocation_name) {
                 static char name[] = "mksfs";
@@ -138,69 +138,64 @@ int main(int argc, char* argv[]) {
                 error_msg_and_help("must have OPTIONS");
 
         /* Get user options */
-        while ((opt = getopt(argc, argv, "hm:b:l:")) != -1)
+        while ((opt = getopt(argc, argv, "hm:l:")) != -1) //"hm:b:l:"
                 switch (opt) {
                 case 'h':
                         usage();
                         break;
                 case 'm':
-                        index_size_s = optarg; 
+                        index_size_s = optarg;
                         break;
-                case 'b':
+                /*case 'b':
                         block_size_s = optarg;
-                        break;
+                        break;*/
                 case 'l':
                         label = optarg;
                         break;
                 default:
                         error_msg_and_help("unrecognized option '%c'", optopt);
                 }
-        /* 
+        /*
          * Try to open directory
          */
         DIR* dir = opendir(argv[argc - 1]);
         if (dir == NULL)
                 error_msg(strerror(errno));
-        /*
-         * File size calculate and check it
-         */
-        //file_size = lseek(fd, 0, SEEK_END);
-        //close(fd);
 
         /*
-         * File size calculate and check it
+         * Open pictures and check final image size size
          */
-
-        if (jstegdev_create(&tmp_bdev, &tmp_fdev, DEFAULT_BLOCK_SIZE) != &tmp_bdev)
+        if (jstegdev_create(&bdev, &fdev, DEFAULT_BLOCK_SIZE) != &bdev)
                 exit(EXIT_INPFILE);
-        tmp_fdev.dirname = argv[argc - 1];
-        //fprintf(stderr, "%s\n", tmp_fdev.dirname);
-        if (tmp_bdev.init(&tmp_bdev) != 0)
+        fdev.dirname = argv[argc - 1];
+        if ((file_size = bdev.build(&bdev)) <= 0)
                 exit(EXIT_INPFILE);
-        file_size = tmp_bdev.size;
-        //fprintf(stderr, "file_size %lu\n", file_size);
         if (file_size < (MBR_SIZE + INDEX_MIN_SIZE))
                 error_msg_and_die("image size %luB is less than %luB",
                                   file_size, MBR_SIZE + INDEX_MIN_SIZE);
-        /* 
-         * Handler blocksize data 
-         */ 
-        if (block_size_s == NULL) 
+        /*
+         * Handler blocksize data
+         * NOTE: For now, there is no chance to change block size, so
+         *       get rid of parsing
+         */
+        block_size = DEFAULT_BLOCK_SIZE;
+        /*if (block_size_s == NULL)
                 block_size = DEFAULT_BLOCK_SIZE;
         else {
                 block_size = convert_size(block_size_s, 0);
-                /* block size must be greater than 128B */
+                // block size must be greater than 128B
                 if (block_size <= DEFAULT_MIN_BLOCK/2 || errno == EINVAL)
                         error_msg_and_help("invalid block size");
                 long int divisor = DEFAULT_MIN_BLOCK;
-                /* Check on the power of two */
-                while (divisor > 0 && (divisor != block_size)) 
+                // Check on the power of two
+                while (divisor > 0 && (divisor != block_size))
                         divisor <<= 1;
 
                 if (divisor < 0)
                         error_msg_and_die("block size isn't the power "
                                           "of 2");
         }
+        */
         if (block_size > file_size)
                 error_msg_and_die("block size cannot be more than %luB "
                                   "(image size)", file_size);
@@ -214,8 +209,8 @@ int main(int argc, char* argv[]) {
                 rsrvd_size = MBR_SIZE;
         else
                 rsrvd_size = block_size;
-        /* 
-         * Handle index size 
+        /*
+         * Handle index size
          */
         if (index_size_s == NULL) {
                 double buf = DEFAULT_INDEX_PERCENT * file_size / 100L;
@@ -231,7 +226,7 @@ int main(int argc, char* argv[]) {
         }
         /* Auto align to BLOCK_SIZE (up) */
         if (index_size % block_size != 0) {
-                index_size += block_size - index_size % block_size; 
+                index_size += block_size - index_size % block_size;
                 error_msg("metadata size was aligned to %luB", index_size);
         }
         /* Check index size(maybe file size too small) */
@@ -251,9 +246,9 @@ int main(int argc, char* argv[]) {
         if (label != NULL && (length = strlen(label)) >= VOLUME_NAME_SIZE)
                 error_msg_and_die("label cannot be longer than %ld symbols",
                                   VOLUME_NAME_SIZE - 1);
-        /* Check on unsupported symbols */ 
+        /* Check on unsupported symbols */
         for (i = 0; i < length; i++)
-                if (label[i] < 0x20   || 
+                if (label[i] < 0x20   ||
                    (label[i] >= 0x80  && label[i] <= 0x9F) ||
                     label[i] == '"'   || label[i] == '*'   ||
                     label[i] == ':'   || label[i] == '<'   ||
@@ -269,28 +264,28 @@ int main(int argc, char* argv[]) {
         /* Convert reserved area size to size in blocks */
         rsrvd_size /= block_size;
         /* Convert index area size to align size per block size */
-        if (index_size % block_size == 0) 
+        if (index_size % block_size == 0)
                 index_sz_perblk = index_size / block_size;
         else
                 index_sz_perblk = index_size / block_size + 1;
         /* Fill struct */
         sfs_opts.time_stamp = time(NULL);
-        sfs_opts.data_size = total_blocks - rsrvd_size - index_sz_perblk; 
+        sfs_opts.data_size = total_blocks - rsrvd_size - index_sz_perblk;
         sfs_opts.index_size = index_size;
         sfs_opts.total_block = total_blocks;
         sfs_opts.reserved_size = rsrvd_size;
         sfs_opts.block_size = (size_t)log2(block_size) - BEGIN_POWER_OF_BS;
         if (label != NULL)
                 strcpy(sfs_opts.label, label);
-        else 
+        else
                 sfs_opts.label[0] = '\0';
         sfs_opts.file_name = calloc((strlen(argv[argc - 1]) + 1),
                                     sizeof(char));
         strcpy(sfs_opts.file_name, argv[argc - 1]);
         /*
-         * Create empty SFS image 
+         * Create empty SFS image
          */
-        if (image_create(sfs_opts) != 0) {
+        if (image_create(sfs_opts, &bdev) != 0) {
                 free(sfs_opts.file_name);
                 return EXIT_FAILURE;
         }

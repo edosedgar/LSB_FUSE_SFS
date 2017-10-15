@@ -29,11 +29,11 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "sfs/io.h"
 #include "sfs/mbr.h"
 
-int image_create(struct sfs_options sfs_opts) 
+int image_create(struct sfs_options sfs_opts, blockdev* bdev)
 {
         size_t block_size = pow(2, sfs_opts.block_size + BEGIN_POWER_OF_BS);
         /*
-         * Print volume info 
+         * Print volume info
          */
         fprintf(stdout, "\nTime stamp-----------> %s"
                         "Data size------------> %lu blocks\n"
@@ -41,11 +41,11 @@ int image_create(struct sfs_options sfs_opts)
                         "Total blocks---------> %lu blocks\n"
                         "Block size-----------> %lu bytes\n"
                         "Label----------------> %s\n"
-                        "Directory name-------> %s\n", 
+                        "Directory name-------> %s\n",
                         ctime(&(sfs_opts.time_stamp)), sfs_opts.data_size,
                         sfs_opts.index_size, sfs_opts.total_block,
                         block_size, sfs_opts.label,
-                        sfs_opts.file_name); 
+                        sfs_opts.file_name);
 
         /*
          * Init file and device
@@ -55,8 +55,6 @@ int image_create(struct sfs_options sfs_opts)
         uint64_t end = 0;
 
         size_t i = 0;
-        filedev_data fdev;
-        blockdev bdev;
         struct mbr_t mbr_block;
         vol_ident_entry vol_entry;
         start_entry st_entry;
@@ -68,15 +66,7 @@ int image_create(struct sfs_options sfs_opts)
                                 sfs_opts.index_size; 
         size_t g_offset_vol =   sfs_opts.total_block * block_size -
                                 INDEX_ENTRY_SIZE;
-        
-        //fdev.fd = -1;
-        SFS_TRACE("Create file device.");
-        if (jstegdev_create(&bdev, &fdev, block_size) != &bdev)
-                return -1;
-        SFS_TRACE("Init block device.");
-        fdev.dirname = sfs_opts.file_name;
-        if (bdev.init(&bdev) != 0)
-                return -1;
+
         /*
          * Fill MBR block
          */
@@ -94,11 +84,11 @@ int image_create(struct sfs_options sfs_opts)
         mbr_block.block_size = sfs_opts.block_size;
         counter = (uint64_t)&mbr_block.magic_number;
         end = (uint64_t)&mbr_block.checksum;
-        for (; counter < end; counter++) 
+        for (; counter < end; counter++)
                 buffer += *(uint8_t*)counter;
-        mbr_block.checksum = buffer; 
-                
-        if (write_data(&bdev, 0, (uint8_t*)(&mbr_block), MBR_SIZE) == -1)
+        mbr_block.checksum = buffer;
+
+        if (write_data(bdev, 0, (uint8_t*)(&mbr_block), MBR_SIZE) == -1)
                 return -1;
         /*
          * Fill basic info in index area
@@ -109,27 +99,27 @@ int image_create(struct sfs_options sfs_opts)
         vol_entry.entry_type = VOL_IDENT;
         vol_entry.time_stamp = sfs_opts.time_stamp;
         memcpy(vol_entry.vol_label, sfs_opts.label, strlen(sfs_opts.label));
-        if (write_data(&bdev, g_offset_vol, (uint8_t*)(&vol_entry), 
-                       INDEX_ENTRY_SIZE) == -1) 
+        if (write_data(bdev, g_offset_vol, (uint8_t*)(&vol_entry),
+                       INDEX_ENTRY_SIZE) == -1)
                 return -1;
         /* Fill starting marker entry */
         memset(&st_entry, 0, INDEX_ENTRY_SIZE);
         st_entry.entry_type = START_ENTRY;
-        if (write_data(&bdev, g_offset_start, (uint8_t*)(&st_entry),
+        if (write_data(bdev, g_offset_start, (uint8_t*)(&st_entry),
                        INDEX_ENTRY_SIZE) == -1)
                 return -1;
         /* Fill deleted file */
-        memset(&del_entry, 0, INDEX_ENTRY_SIZE); 
+        memset(&del_entry, 0, INDEX_ENTRY_SIZE);
         del_entry.entry_type = DEL_FILE_ENTRY;
         del_entry.cont_entries = 0;
         del_entry.time_stamp = (uint64_t)NULL;
-        del_entry.start_block = mbr_block.reserved_size; 
-        del_entry.end_block = mbr_block.reserved_size + 
+        del_entry.start_block = mbr_block.reserved_size;
+        del_entry.end_block = mbr_block.reserved_size +
                               mbr_block.data_area_size - 1;
         del_entry.size = (uint64_t)NULL;
         strncpy((char*)del_entry.name, "*free", 29);
         g_offset_start += INDEX_ENTRY_SIZE;
-        if (write_data(&bdev, g_offset_start, (uint8_t*)(&del_entry),
+        if (write_data(bdev, g_offset_start, (uint8_t*)(&del_entry),
                        INDEX_ENTRY_SIZE) == -1)
                 return -1;
         /* Write zero directory */
@@ -138,20 +128,20 @@ int image_create(struct sfs_options sfs_opts)
         zero_dir.time_stamp = 0;
         zero_dir.dir_name[0] = '\0';
         g_offset_start += INDEX_ENTRY_SIZE;
-        if (write_data(&bdev, g_offset_start, (uint8_t*)(&zero_dir),
+        if (write_data(bdev, g_offset_start, (uint8_t*)(&zero_dir),
                        INDEX_ENTRY_SIZE) == -1)
                 return -1;
         /* Fill remainig area of unused entries */
         SFS_TRACE("Filling remain INDEX area with unused entries.");
         memset(&remain_area, 0, INDEX_ENTRY_SIZE);
         remain_area.entry_type = UNUSED_ENTRY;
-        for (i = g_offset_start + INDEX_ENTRY_SIZE; 
-             i < g_offset_vol; i += INDEX_ENTRY_SIZE) 
-                if (write_data(&bdev, i, (uint8_t*)(&remain_area), 
-                               INDEX_ENTRY_SIZE) == -1) 
+        for (i = g_offset_start + INDEX_ENTRY_SIZE;
+             i < g_offset_vol; i += INDEX_ENTRY_SIZE)
+                if (write_data(bdev, i, (uint8_t*)(&remain_area),
+                               INDEX_ENTRY_SIZE) == -1)
                         return -1;
-        
-        bdev.sync(&bdev);
-        bdev.release(&bdev); 
+
+        bdev->sync(bdev);
+        bdev->release(bdev);
         return 0;
 }
