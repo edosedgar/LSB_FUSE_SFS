@@ -23,6 +23,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <jpeglib.h>
 #include <setjmp.h>
 
+#define JPEG_ERROR 0xFF
+
 /*
  *  extended error handler struct
  */

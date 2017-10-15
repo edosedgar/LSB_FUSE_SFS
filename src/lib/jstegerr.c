@@ -19,33 +19,33 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 //#include <sys/types.h>
 #include <stdlib.h>
 #include <stdio.h>
+
 #include <bdev_jsteg/jstegerr.h>
 
 METHODDEF(void)
 my_error_exit (j_common_ptr cinfo)
 {
-	// cinfo->err really points to a jerror_mgr struct
-	jerror_ptr myerr = (jerror_ptr) cinfo->err;
+        // cinfo->err really points to a jerror_mgr struct
+        jerror_ptr myerr = (jerror_ptr) cinfo->err;
 
-	/* We could postpone this until after returning, if we chose. */
-	(*cinfo->err->output_message) (cinfo);
+        /* We could postpone this until after returning, if we chose. */
+        (*cinfo->err->output_message) (cinfo);
 
-	/* Return control to the setjmp point */
-  	longjmp(myerr->setjmp_buffer, 1);
+        /* Return control to the setjmp point */
+        longjmp(myerr->setjmp_buffer, 1);
 }
 
 
-GLOBAL(int) 
+GLOBAL(int)
 jerr_init(j_common_ptr cinfo, jerror_ptr jerr)
 {
-	cinfo->err = jpeg_std_error(&(jerr->pub));
-	jerr->pub.error_exit = my_error_exit;
+        cinfo->err = jpeg_std_error(&(jerr->pub));
+        jerr->pub.error_exit = my_error_exit;
 
-  	/* Establish the setjmp return context for my_error_exit to use. */
-	if (setjmp(jerr->setjmp_buffer)) {
-    		//jpeg_destroy_decompress(cinfo);
-		return -1;
-	}
+        /* Establish the setjmp return context for my_error_exit to use. */
+        if (setjmp(jerr->setjmp_buffer)) {
+                return JPEG_ERROR;
+        }
 
-	return 0;
+        return 0;
 }
