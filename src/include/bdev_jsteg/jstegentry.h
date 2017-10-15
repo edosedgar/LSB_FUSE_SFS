@@ -54,7 +54,7 @@ jdecompress_destroy(jdecompress_state* cinfo_ptr);
 
 
 typedef struct jsteg_entry_t {
-		uint16_t jindex;
+		int32_t jindex;
 		FILE* file;
 		
 		size_t start;

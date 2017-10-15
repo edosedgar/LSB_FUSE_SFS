@@ -205,13 +205,14 @@ sort_compare(const void* _lhs, const void* _rhs)
         jdev_entry *rhs = (jdev_entry *)_rhs;
 
         // all negative jindex (==-1) should shift to the end
-        if (lhs->jindex < 0)
-                return -1;
 
-        if (rhs->jindex < 0)
+        if (lhs->jindex < 0)
                 return 1;
 
-        return lhs->jindex - rhs->jindex;
+        if (rhs->jindex < 0)
+                return -1;
+
+        return  lhs->jindex - rhs->jindex;
 }
 
 METHODDEF(int)
@@ -231,15 +232,16 @@ jstegdev_init(blockdev* bdev)
         qsort(FDEV->entries, FDEV->jfile_num, sizeof(jdev_entry),
               sort_compare);
 
-        for (int i = 0; i < FDEV->jfile_num; i++) {
+        size_t old_file_num = FDEV->jfile_num;
+        for (int i = 0; i < old_file_num; i++)
                 if (FDEV->entries[i].jindex < 0)
                         FDEV->jfile_num--;
 
+        for (int i = 0; i < FDEV->jfile_num; i++)
                 if (FDEV->entries[i].jindex != i) {
                         errno = EBADFD;
                         return -1;
                 }
-        }
 
         if (FDEV->jfile_num < 1) {
                 errno = EINVAL;
