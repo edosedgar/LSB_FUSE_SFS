@@ -6,7 +6,7 @@
 #include <stdio.h>
 #include <errno.h>
 
-#define TESTDIR_NAME "tests/pictures"
+#define TESTDIR_NAME "pictures"
 #define TESTMSG "Hello, world!"
 #define BLOCK_SIZE 255
 

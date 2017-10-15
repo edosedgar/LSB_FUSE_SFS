@@ -7,7 +7,7 @@
 #include <errno.h>
 #include <stdlib.h>
 
-#define TESTDIR_NAME "tests/pictures"
+#define TESTDIR_NAME "pictures"
 #define TESTFILE_NUM 3
 #define BLOCK_SIZE 255
 #define FREE_SPACE_0 2373

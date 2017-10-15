@@ -1,7 +1,7 @@
 #include <check.h>
 #include <bdev_jsteg/jstegdev.h>
 
-#define TESTDIR_NAME  "tests/pictures"
+#define TESTDIR_NAME  "pictures"
 #define TESTFILE_NUM  3
 #define BLOCK_SIZE    255
 #define TEST_PREAMBLE 0xFF
