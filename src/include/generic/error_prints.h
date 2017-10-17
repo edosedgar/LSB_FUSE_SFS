@@ -24,6 +24,14 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef SFS_ERROR_PRINTS_H
 #define SFS_ERROR_PRINTS_H
 
+// log levels
+#define UNSET (-1)
+#define ERROR (0)
+#define DEBUG (1)
+#define INFO  (2)
+
+#define DEFAULT_LEVEL DEBUG
+
 void die(void);
 
 void error_msg(const char *fmt, ...);
@@ -31,5 +39,6 @@ void perror_msg(const char *fmt, ...);
 void perror_msg_and_die(const char *fmt, ...);
 void error_msg_and_help(const char *fmt, ...);
 void error_msg_and_die(const char *fmt, ...);
+void print_on_level(unsigned int level, const char *fmt, ...);
 
 #endif

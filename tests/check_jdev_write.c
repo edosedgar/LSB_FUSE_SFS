@@ -18,7 +18,7 @@ START_TEST(test_jentry_write)
         blockdev bdev;
         (void) jstegdev_create(&bdev, &fdev, BLOCK_SIZE);
         fprintf(stderr, "bdev %p\n", &bdev);
-        bdev.init(&bdev);
+        bdev.build(&bdev);
 
         char in_buf[] = "test message";
         memcpy(FDEV->entries[2].data, in_buf, sizeof(in_buf));
@@ -29,7 +29,7 @@ START_TEST(test_jentry_write)
         //filedev_dump(&bdev, BLOCK_SIZE);
 
         fprintf(stderr, "TEST %s\n", (char*)FDEV->entries[2].data);
-        ck_assert(strncmp((void*) FDEV->entries[2].data,
+        ck_assert(memcmp((void*) FDEV->entries[2].data,
                 (void*) in_buf, sizeof(in_buf)) == 0);
 
 
@@ -53,12 +53,12 @@ START_TEST(test_jdev_write)
         buf_t* out_buf = malloc(BLOCK_SIZE * sizeof(buf_t));
         bdev.write(&bdev, in_buf, BLOCK_SIZE, 0);
         bdev.read(&bdev, out_buf, BLOCK_SIZE, 0);
-        ck_assert(strncmp((void*) in_buf, (void*) out_buf, BLOCK_SIZE) == 0);
+        ck_assert(memcmp((void*) in_buf, (void*) out_buf, BLOCK_SIZE) == 0);
 
         memset((void*) buf, 0xAB, BLOCK_SIZE);
         bdev.write(&bdev, buf, BLOCK_SIZE, 8);
         bdev.read(&bdev, out_buf, BLOCK_SIZE, 8);
-        ck_assert(strncmp((void*) buf, (void*) out_buf, BLOCK_SIZE) == 0);
+        ck_assert(memcmp((void*) buf, (void*) out_buf, BLOCK_SIZE) == 0);
 
         // by two block
         buf = realloc(buf, BLOCK_SIZE * 2);
@@ -70,7 +70,7 @@ START_TEST(test_jdev_write)
         bdev.read(&bdev, out_buf, BLOCK_SIZE * 2, 8);
         fprintf(stderr, "OUT_BUFFER %s\n", out_buf);
         //filedev_dump(&bdev, BLOCK_SIZE);
-        ck_assert(strncmp((void*) buf, (void*) out_buf, BLOCK_SIZE * 2) == 0);
+        ck_assert(memcmp((void*) buf, (void*) out_buf, BLOCK_SIZE * 2) == 0);
 
         // read-write test within two different session
         bdev.sync(&bdev);
@@ -83,21 +83,26 @@ START_TEST(test_jdev_write)
         //filedev_dump(&bdev, BLOCK_SIZE);
 
         // fsync test
-        FDEV->entries[0].is_available = 0;
-        bzero(FDEV->entries[0].data, FDEV->entries[0].bytes);
+        //FDEV->entries[0].is_available = 0;
+        //bzero(FDEV->entries[0].data, FDEV->entries[0].bytes);
         FDEV->entries[0].read_data(FDEV->entries);
-        ck_assert(strncmp((void*) FDEV->entries[0].data, 
+        fprintf(stderr, "_DATA_ %*s\n", (int)sizeof(in_buf), FDEV->entries[0].data);
+        fprintf(stderr, "IN_BUF %*s\n", (int)sizeof(in_buf), in_buf);
+        ck_assert(memcmp((void*) FDEV->entries[0].data, 
                 (void*) in_buf, sizeof(in_buf)) == 0);
 
-        bdev.release(&bdev);
         //filedev_dump(&bdev, BLOCK_SIZE);
+        bdev.release(&bdev);
 
+        /*** new session **/
+        /**
+         * State:
+         */
         filedev_data fdev2;
         fdev2.dirname = TESTDIR_NAME;
         (void) jstegdev_create(&bdev, &fdev2, BLOCK_SIZE);
         fprintf(stderr, "bdev %p\n", &bdev);
         bdev.init(&bdev);
-
 
         fprintf(stderr, "jfilenum %lu\n", FDEV->jfile_num);
         bdev.read(&bdev, buf, BLOCK_SIZE * 2, 8);

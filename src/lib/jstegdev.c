@@ -25,6 +25,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <bdev_jsteg/jstegdev.h>
 #include <sfs/debug.h>
+#include <bdev_jsteg/js_debug.h>
 
 #define FDEV ((filedev_data*) bdev->dev_data)
 
@@ -151,17 +152,17 @@ jstegdev_build(blockdev* bdev)
                                         + FDEV->entries[i - 1].bytes;
 
 
-        SFS_TRACE("size_before_align %d\n", (int)bdev->size);
+        js_info("size_before_align %d\n", (int)bdev->size);
 
         // align size of the block device to block_size
         int rest = bdev->size % bdev->block_size;
-        SFS_TRACE("BLOCK SIZE: %lu\n", bdev->block_size);
+        js_debug("BLOCK SIZE: %lu\n", bdev->block_size);
         int last_jindex = FDEV->jfile_num - 1;
         if (rest) {
-                SFS_TRACE("REST %d\n", rest);
-                SFS_TRACE("LAST JENTRY SIZE %lu\n",
+                js_info("REST %d\n", rest);
+                js_info("LAST JENTRY SIZE %lu\n",
                           FDEV->entries[last_jindex].bytes);
-                SFS_TRACE("FIRST JENTRY SIZE %lu\n",
+                js_info("FIRST JENTRY SIZE %lu\n",
                           FDEV->entries[0].bytes);
                 int i;
                 // swap entries
@@ -173,7 +174,7 @@ jstegdev_build(blockdev* bdev)
                                 -= (rest - FDEV->entries[last_jindex].bytes);
                         FDEV->jfile_num--;
                 } else if (i < last_jindex) {
-                        SFS_TRACE("SWAP IDX %d\n", i);
+                        js_debug("SWAP IDX %d\n", i);
 
                         jdev_entry swapable_entry = FDEV->entries[i];
                         FDEV->entries[i] = FDEV->entries[last_jindex];
@@ -190,6 +191,8 @@ jstegdev_build(blockdev* bdev)
         fprintf(stderr, "FILE NUM: %lu\n", FDEV->jfile_num);
         for (int i = 0; i < FDEV->jfile_num; i++) {
                 FDEV->entries[i].write_preamble(FDEV->entries + i);
+                js_debug("build jindex: %d", FDEV->entries[i].jindex);
+                js_debug("real jindex: %d", FDEV->entries[i].read_preamble(FDEV->entries + i));
         }
 
         if (jstegdev_finish_construct(bdev) != 0)
@@ -227,10 +230,14 @@ jstegdev_init(blockdev* bdev)
         for (int i = 0; i < FDEV->jfile_num; i++) {
                 FDEV->entries[i].jindex
                         = FDEV->entries[i].read_preamble(FDEV->entries + i);
+                js_debug("jindex %d %d\n", i, FDEV->entries[i].jindex);
         }
 
         qsort(FDEV->entries, FDEV->jfile_num, sizeof(jdev_entry),
               sort_compare);
+
+        for (int i = 0; i < FDEV->jfile_num; i++)
+                js_debug("jindex %d %d\n", i, FDEV->entries[i].jindex);
 
         size_t old_file_num = FDEV->jfile_num;
         for (int i = 0; i < old_file_num; i++)
@@ -238,7 +245,11 @@ jstegdev_init(blockdev* bdev)
                         FDEV->jfile_num--;
 
         for (int i = 0; i < FDEV->jfile_num; i++)
+                fprintf(stderr, "jindex %d %d\n", i, FDEV->entries[i].jindex);
+
+        for (int i = 0; i < FDEV->jfile_num; i++)
                 if (FDEV->entries[i].jindex != i) {
+                        js_error("expected jindex %d, real %d\n", i, FDEV->entries[i].jindex);
                         errno = EBADFD;
                         return -1;
                 }
@@ -274,7 +285,8 @@ jstegdev_init(blockdev* bdev)
 }
 
 LOCAL(int)
-comparator(const void* _key, const void* _item) {
+comparator(const void* _key, const void* _item)
+{
         int* key = (int*) _key;
         jdev_entry* item = (jdev_entry*) _item;
 
@@ -324,13 +336,13 @@ jstegdev_write(blockdev* bdev, buf_t* buf, size_t buf_size, bnum_t block_num)
         if (cur_entry == NULL)
                 return -1;
 
-        SFS_TRACE("FIRST ENTRY: %d\n", cur_entry->jindex);
-        SFS_TRACE("END: %ld\n", cur_entry->start + cur_entry->bytes);
+        js_info("FIRST ENTRY: %d\n", cur_entry->jindex);
+        js_info("END: %ld\n", cur_entry->start + cur_entry->bytes);
 
         jdev_entry* end = FDEV->entries + FDEV->jfile_num;
         int offset = start_pos - cur_entry->start;
-        SFS_TRACE("OFFSET: %d\n", offset);
-        SFS_TRACE("END OFFSET: %ld\n", offset + buf_size);
+        js_info("OFFSET: %d\n", offset);
+        js_info("END OFFSET: %ld\n", offset + buf_size);
 
 
         int written_bytes = 0;
@@ -361,7 +373,7 @@ jstegdev_write(blockdev* bdev, buf_t* buf, size_t buf_size, bnum_t block_num)
                 offset = 0;
         }
 
-        SFS_TRACE("LAST ENTRY: %d\n", cur_entry->jindex);
+        js_info("LAST ENTRY: %d\n", cur_entry->jindex);
         return (size_t) buf_size;
 }
 
@@ -398,15 +410,16 @@ jstegdev_read(blockdev* bdev, buf_t* buf, size_t buf_size, bnum_t block_num)
                                         sizeof(jdev_entry),
                                         comparator);
 
-        SFS_TRACE("FIRST ENTRY: %d\n", cur_entry->jindex);
-        SFS_TRACE("END: %ld\n", cur_entry->start + cur_entry->bytes);
+        js_info("FIRST ENTRY: %d\n", cur_entry->jindex);
+        js_info("END: %ld\n", cur_entry->start + cur_entry->bytes);
 
         jdev_entry* end = FDEV->entries + FDEV->jfile_num;
         int offset = start_pos - cur_entry->start;
-        SFS_TRACE("Read OFF %d\n", offset);
+        js_info("Read OFF %d\n", offset);
         int read_bytes = 0;
         int remained_bytes = buf_size;
         while (remained_bytes > 0) {
+                js_info("Reamainder part\n");
                 if (cur_entry == end) {
                         errno = EINVAL;
                         return -1;
@@ -414,7 +427,7 @@ jstegdev_read(blockdev* bdev, buf_t* buf, size_t buf_size, bnum_t block_num)
 
                 if (!cur_entry->is_available) {
                         cur_entry->read_data(cur_entry);
-                        SFS_TRACE("AVAILABLE READ %d\n", cur_entry->jindex);
+                        js_info("AVAILABLE READ %d\n", cur_entry->jindex);
                         cur_entry->is_available = 1;
                 }
 
@@ -429,14 +442,14 @@ jstegdev_read(blockdev* bdev, buf_t* buf, size_t buf_size, bnum_t block_num)
                 offset = 0;
         }
 
-        SFS_TRACE("LAST ENTRY: %d\n", cur_entry->jindex);
+        js_info("LAST ENTRY: %d\n", cur_entry->jindex);
         return buf_size;
 }
 
 METHODDEF(int)
 jstegdev_release(blockdev* bdev)
 {
-        SFS_TRACE("RELEASE\n");
+        js_debug("RELEASE\n");
         jdev_entry* entry;
 
         for (int i = 0; i < FDEV->jfile_num; i++) {
@@ -547,13 +560,12 @@ void filedev_dump(blockdev* bdev, const size_t block_size)
                 pos += block_size;
 
                 for (int i = 0; i < block_size; i++) {
-                        fprintf(stderr, "%c", buffer[i]);
+                        fputc(buffer[i], stderr);
+                        //fprintf(stderr, "%c", buffer[i]);
                 }
-
 
                 fprintf(stderr, "\n");
         }
-
 
         free(buffer);
 

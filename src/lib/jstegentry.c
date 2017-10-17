@@ -45,10 +45,10 @@ jdecompress_create(jdecompress_state* cinfo_ptr, FILE* file)
                         return -1;
                 }
 
-                cinfo_ptr->coeffs = jpeg_read_coefficients(
-                                        (j_decompress_ptr) cinfo_ptr);
+        cinfo_ptr->coeffs = jpeg_read_coefficients(
+                                (j_decompress_ptr) cinfo_ptr);
 
-                return 0;
+        return 0;
 }
 
 GLOBAL(void)
@@ -72,9 +72,9 @@ read_preamble(jdev_entry* entry)
         // only last LSB bits of DCT coeff are used
         int pos = 0;
         struct preamble_t pr;
+        pr.preamble = 0;
 
         JCOEFPTR it;
-        //bzero(entry->data, entry->bytes);
         Foreach_VDCT_coeff(it, dinfo) {
                 if (pos < PREAMBLE_SIZE) {
                         pr.preamble |= (*it & SB_BITMASK)
@@ -85,6 +85,8 @@ read_preamble(jdev_entry* entry)
         }
 
         int jindex = PREAMBLE_INDEX(pr);
+        fprintf(stderr, "start %d end %d\n", pr.bytes[0], pr.bytes[3]);
+        fprintf(stderr, "read_preamble %d\n", *(uint16_t*)((pr).bytes + 1));
 
         jdecompress_destroy(&dinfo);
 
@@ -102,11 +104,11 @@ read_file(jdev_entry* entry)
         jdecompress_create(&dinfo, entry->file);
 
         // only last LSB bits of DCT coeff are used
-        int i = 0;
+        int i = 0;      
         int pos = 0;
         byte_t value;
         JCOEFPTR it;
-        //bzero(entry->data, entry->bytes);
+        bzero(entry->data, entry->bytes);
         Foreach_VDCT_coeff(it, dinfo) {
                 if (i >= entry->bytes * LSBF)
                         break;
@@ -143,6 +145,7 @@ write_preamble(jdev_entry* entry)
         // write preamble
         struct preamble_t pr;
         PREAMBLE_INIT(pr, entry->jindex);
+        fprintf(stderr, "PREAMBLE_INIT: %d\n", (int)pr.bytes[0]);
 
         int pos = 0;
 
@@ -190,10 +193,6 @@ write_file(jdev_entry* entry)
         jdecompress_state dinfo;
         dinfo.pb.err = jpeg_std_error(&jerr);
         jdecompress_create(&dinfo, entry->file);
-
-        // write preamble
-        struct preamble_t pr;
-        PREAMBLE_INIT(pr, entry->jindex);
 
         int pos = 0;
         int i = 0;

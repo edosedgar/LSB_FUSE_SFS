@@ -4,7 +4,7 @@
 #define TESTDIR_NAME  "pictures"
 #define TESTFILE_NUM  3
 #define BLOCK_SIZE    255
-#define TEST_PREAMBLE 0xFF
+#define TEST_PREAMBLE 0xAB
 
 #define FDEV ((filedev_data*) bdev.dev_data)
 
@@ -20,6 +20,15 @@ START_TEST(test_read_write_preamble)
         for (int i = 0; i < FDEV->jfile_num; i++) {
                 FDEV->entries[i].jindex = TEST_PREAMBLE;
                 FDEV->entries[i].write_preamble(FDEV->entries + i);
+                value = FDEV->entries[i].read_preamble(FDEV->entries + i);
+                ck_assert(value == TEST_PREAMBLE);
+        }
+        bdev.sync(&bdev);
+        bdev.release(&bdev);
+
+        bdev.init(&bdev);
+        
+        for (int i = 0; i < FDEV->jfile_num; i++) {
                 value = FDEV->entries[i].read_preamble(FDEV->entries + i);
                 ck_assert(value == TEST_PREAMBLE);
         }
