@@ -41,6 +41,12 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 char *program_invocation_name;
 #endif
 
+void
+die(void)
+{
+        exit(1);
+}
+
 /*
  * Print help and extended help
  */

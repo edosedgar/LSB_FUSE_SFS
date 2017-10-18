@@ -24,10 +24,11 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <time.h>
 
 #include <bdev_jsteg/jstegdev.h>
-#include <sfs/debug.h>
 #include <bdev_jsteg/js_debug.h>
 
 #define FDEV ((filedev_data*) bdev->dev_data)
+
+int current_level = DEFAULT_LEVEL;
 
 LOCAL(int)
 jstegdev_start_construct(blockdev* bdev)
@@ -64,8 +65,6 @@ jstegdev_start_construct(blockdev* bdev)
                 if (access(abs_path, W_OK | R_OK) == 0)
                         FDEV->jfile_num++;
         }
-
-        SFS_TRACE("File number after first check:%lu\n", FDEV->jfile_num);
 
         if (errno != 0)
                 return -1;
@@ -104,7 +103,7 @@ jstegdev_start_construct(blockdev* bdev)
                 idx++;
         }
 
-        SFS_TRACE("File number after second check:%lu\n", FDEV->jfile_num);
+        js_debug("File number after second check:%lu\n", FDEV->jfile_num);
         if (FDEV->jfile_num <= 0) {
                 return -1;
         }

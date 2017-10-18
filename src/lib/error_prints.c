@@ -31,14 +31,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 extern char *program_invocation_name;
 #endif
 
-static unsigned int current_level =  DEFAULT_LEVEL;
-
-void
-die(void)
-{
-        exit(1);
-}
-
 static void
 verror_msg(int err_no, const char *fmt, va_list p)
 {
@@ -114,17 +106,4 @@ perror_msg_and_die(const char *fmt, ...)
         va_start(p, fmt);
         verror_msg(errno, fmt, p);
         die();
-}
-
-void
-print_on_level(unsigned int debug_level, const char *fmt, ...)
-{
-        va_list p;
-        va_start(p, fmt);
-        if (debug_level > current_level)
-                return;
-        else
-                verror_msg(0, fmt, p);
-
-        va_end(p);
 }

@@ -21,15 +21,29 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <stdio.h>
 
-#include <generic/error_prints.h>
+// log levels
+#define UNSET (-1)
+#define ERROR (0)
+#define DEBUG (1)
+#define INFO  (2)
 
-#define js_error(fmt, ...) \
-        print_on_level(ERROR, fmt, ##__VA_ARGS__)
+#define DEFAULT_LEVEL UNSET
 
-#define js_debug(fmt, ...) \
-        print_on_level(DEBUG, fmt, ##__VA_ARGS__)
+extern int current_level;
 
-#define js_info(fmt, ...) \
-        print_on_level(INFO, fmt, ##__VA_ARGS__)
+#define js_error(fmt, ...) do {                         \
+        if (ERROR <= current_level)                     \
+                fprintf(stderr, fmt, ##__VA_ARGS__);    \
+        } while(0);
+
+#define js_debug(fmt, ...) do {                         \
+        if (DEBUG <= current_level)                     \
+                fprintf(stderr, fmt, ##__VA_ARGS__);    \
+        } while(0);
+
+#define js_info(fmt, ...) do {                          \
+        if (INFO <= current_level)                      \
+                fprintf(stderr, fmt, ##__VA_ARGS__);    \
+        } while(0);
 
 #endif
