@@ -93,13 +93,12 @@ jstegdev_start_construct(blockdev* bdev)
                 if ((sb.st_mode & S_IFMT) != S_IFREG)
                         continue;
 
-                FILE* ftemp = fopen(abs_path, "r+b");
-                jdev_entry* entry = jentry_init(ftemp);
+                jdev_entry* entry = jentry_init(abs_path);
                 if (entry == NULL) {
                         FDEV->jfile_num--;
                         continue;
                 }
-                FDEV->entries[idx] = *entry;
+                memcpy(FDEV->entries + idx, entry, sizeof(jdev_entry));
                 idx++;
         }
 

@@ -16,12 +16,33 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <stdio.h>
 #include <stdlib.h>
-#include <strings.h>
+#include <string.h>
+#include <sys/param.h>
+#include <jpeglib.h>
 
-#include <bdev_jsteg/jstegentry.h>
-#include <bdev_jsteg/foreach.h>
-#include <bdev_jsteg/jstegerr.h>
+#include "bdev_jsteg/defines.h"
+#include "bdev_jsteg/foreach.h"
+#include "bdev_jsteg/jstegentry.h"
+#include "bdev_jsteg/jstegerr.h"
+
+LOCAL(void)
+jdemarker_copy(struct jpeg_compress_struct* dest_cinfo,
+               struct jpeg_decompress_struct* src_cinfo)
+{
+        jpeg_saved_marker_ptr marker;
+
+        for (marker = src_cinfo->marker_list;
+             marker != NULL;
+             marker = marker->next) {
+                if (marker->marker == JPEG_APP0)
+                        if(memcmp(marker->data, "JFIF" , 5) == 0)
+                                continue;
+                jpeg_write_marker(dest_cinfo, marker->marker,
+                                  marker->data, marker->data_length);
+       }
+}
 
 /*
  *      JEDECOMPRESS STATE extension
@@ -29,6 +50,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 GLOBAL(int)
 jdecompress_create(jdecompress_state* cinfo_ptr, FILE* file)
 {
+        int i;
+        struct jpeg_decompress_struct* cinfo = (j_decompress_ptr) cinfo_ptr;
         cinfo_ptr->ci = 0;
         cinfo_ptr->by = 0;
         fseek(file, 0, SEEK_SET);
@@ -36,17 +59,22 @@ jdecompress_create(jdecompress_state* cinfo_ptr, FILE* file)
         struct jerror_mgr jerr;
         (void) jerr_init((j_common_ptr) cinfo_ptr, &jerr);
 
-        jpeg_create_decompress((j_decompress_ptr) cinfo_ptr);
+        jpeg_create_decompress(cinfo);
 
-        jpeg_stdio_src((j_decompress_ptr) cinfo_ptr, file);
-        if (jpeg_read_header((j_decompress_ptr) cinfo_ptr, TRUE) ==
-                JPEG_ERROR) {
-                        jpeg_destroy_decompress((j_decompress_ptr) cinfo_ptr);
+        jpeg_stdio_src(cinfo, file);
+
+        /* Request all metadata */
+        jpeg_save_markers(cinfo, JPEG_COM, 0xFFFF);
+        for (i = 0; i < 16; i++) {
+                jpeg_save_markers(cinfo, JPEG_APP0 + i, 0xFFFF);
+        }
+
+        if (jpeg_read_header(cinfo, TRUE) == JPEG_ERROR) {
+                        jpeg_destroy_decompress(cinfo);
                         return -1;
                 }
 
-        cinfo_ptr->coeffs = jpeg_read_coefficients(
-                                (j_decompress_ptr) cinfo_ptr);
+        cinfo_ptr->coeffs = jpeg_read_coefficients(cinfo);
 
         return 0;
 }
@@ -54,7 +82,7 @@ jdecompress_create(jdecompress_state* cinfo_ptr, FILE* file)
 GLOBAL(void)
 jdecompress_destroy(jdecompress_state* cinfo_ptr)
 {
-        jpeg_finish_decompress((j_decompress_ptr) cinfo_ptr);
+        //jpeg_finish_decompress((j_decompress_ptr) cinfo_ptr);
         jpeg_destroy_decompress((j_decompress_ptr) cinfo_ptr);
 }
 
@@ -168,6 +196,7 @@ write_preamble(jdev_entry* entry)
 
         fseek(entry->file, 0, SEEK_SET);
         jpeg_write_coefficients(&cinfo, dinfo.coeffs);
+        jdemarker_copy(&cinfo, (j_decompress_ptr) &dinfo);
 
         // destroy compressor
         jpeg_finish_compress(&cinfo);
@@ -218,6 +247,7 @@ write_file(jdev_entry* entry)
 
         fseek(entry->file, 0, SEEK_SET);
         jpeg_write_coefficients(&cinfo, dinfo.coeffs);
+        jdemarker_copy(&cinfo, (j_decompress_ptr) &dinfo);
 
         // destroy compressor
         jpeg_finish_compress(&cinfo);
@@ -227,15 +257,33 @@ write_file(jdev_entry* entry)
         jdecompress_destroy(&dinfo);
 }
 
+
 METHODDEF(void)
 jentry_destroy(jdev_entry* jentry) {
+        /*unsigned char *exif_data;
+        unsigned int exif_data_len;
+        FILE* f = jentry->file;
+
+        exif_data_save_data(jentry->exif_data, &exif_data, &exif_data_len);
+
+        fwrite(exif_header, exif_header_len, 1, f);
+        // Write EXIF block length in big-endian order
+        fputc((exif_data_len + 2) >> 8, f);
+        fputc((exif_data_len + 2) & 0xff, f);
+        // Write EXIF data block
+        fwrite(exif_data, exif_data_len, 1, f);
+        exif_data_unref(jentry->exif_data);
+        */
         free(jentry->data);
         fclose(jentry->file);
+
 }
 
 GLOBAL(jdev_entry*)
-jentry_init(FILE* file)
+jentry_init(char* abs_path)
 {
+        FILE* file = fopen(abs_path, "r+b");
+
         jdev_entry* entry = (jdev_entry*) malloc(sizeof(jdev_entry));
         entry->file = file;
 
@@ -244,7 +292,6 @@ jentry_init(FILE* file)
         if (jdecompress_create(&cinfo, file) == -1) {
                 return NULL;
         }
-
         int size = 0;
         int pos = 0;
 

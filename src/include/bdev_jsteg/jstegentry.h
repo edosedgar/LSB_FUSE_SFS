@@ -20,30 +20,38 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #define _JSTEGENTRY_
 
 #include <stdio.h>
-
 #include <jpeglib.h>
-#include <bdev_jsteg/defines.h>
+//#include <libexif/exif-data.h>
+
+#include "bdev_jsteg/defines.h"
+
+// EXIF marker / Adobe XMP marker
+#define EXIF_MARKER     (JPEG_APP0+1)
+// ICC profile marker
+#define ICC_MARKER      (JPEG_APP0+2)
+// IPTC marker / BIM marker
+#define IPTC_MARKER     (JPEG_APP0+13)
 
 typedef uint8_t byte_t;
 
 struct preamble_t {
-	union {
-		uint32_t preamble;
-		byte_t bytes[4];
-	};
+        union {
+                uint32_t preamble;
+                byte_t bytes[4];
+        };
 };
 
 
 // JDECOMPRESS STATE extension
 
 typedef struct jdecompress_state_t {
-	struct jpeg_decompress_struct pb;
+        struct jpeg_decompress_struct pb;
 
-	JDIMENSION ci;
-	JDIMENSION by;
-	JDIMENSION bx;
-	jvirt_barray_ptr* coeffs;
-	JBLOCKARRAY row_ptrs[MAX_COMPONENTS];
+        JDIMENSION ci;
+        JDIMENSION by;
+        JDIMENSION bx;
+        jvirt_barray_ptr* coeffs;
+        JBLOCKARRAY row_ptrs[MAX_COMPONENTS];
 } jdecompress_state;
 
 GLOBAL(int)
@@ -54,24 +62,24 @@ jdecompress_destroy(jdecompress_state* cinfo_ptr);
 
 
 typedef struct jsteg_entry_t {
-		int32_t jindex;
-		FILE* file;
-		
-		size_t start;
-		size_t bytes;
+        int32_t jindex;
+        FILE* file;
 
-		int is_available;
+        size_t start;
+        size_t bytes;
 
-		byte_t* data;
+        int is_available;
 
-		void (*read_data) (struct jsteg_entry_t* jentry);
-		void (*write_data) (struct jsteg_entry_t* jentry);
-		void (*jentry_release) (struct jsteg_entry_t* jentry);
-		void (*write_preamble) (struct jsteg_entry_t* jentry);
-		int (*read_preamble) (struct jsteg_entry_t* jentry);
+        byte_t* data;
+
+        void (*read_data) (struct jsteg_entry_t* jentry);
+        void (*write_data) (struct jsteg_entry_t* jentry);
+        void (*jentry_release) (struct jsteg_entry_t* jentry);
+        void (*write_preamble) (struct jsteg_entry_t* jentry);
+        int (*read_preamble) (struct jsteg_entry_t* jentry);
 } jdev_entry;
 
 GLOBAL(jdev_entry*)
-jentry_init(FILE* file);
+jentry_init(char* abs_path);
 
 #endif // _JSTEGENTRY_
