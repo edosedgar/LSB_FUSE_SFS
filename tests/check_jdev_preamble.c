@@ -1,10 +1,12 @@
 #include <check.h>
 #include <bdev_jsteg/jstegdev.h>
+#include "tests/create_jpeg.h"
 
 #define TESTDIR_NAME  "pictures"
-#define TESTFILE_NUM  3
-#define BLOCK_SIZE    255
+#define TESTFILE_NUM  10
+#define BLOCK_SIZE    280
 #define TEST_PREAMBLE 0xAB
+#define SEED          123
 
 #define FDEV ((filedev_data*) bdev.dev_data)
 
@@ -14,6 +16,15 @@ START_TEST(test_read_write_preamble)
         blockdev bdev;
         (void) jstegdev_create(&bdev, &fdev, BLOCK_SIZE);
         fprintf(stderr, "bdev %p\n", &bdev);
+
+        char path[PATH_MAX];
+        /** create new files **********/
+        for (int i = 0; i < TESTFILE_NUM; i++) {
+                snprintf(path, PATH_MAX, "%s/pic%d.jpg", TESTDIR_NAME, i);
+                fprintf(stderr, "SOURCE %s\n", path);
+                create_jpeg(path);
+        }
+        /*******************************/
         bdev.build(&bdev);
 
         int value = 0;
@@ -24,16 +35,26 @@ START_TEST(test_read_write_preamble)
                 ck_assert(value == TEST_PREAMBLE);
         }
         bdev.sync(&bdev);
+        //for (int i = 0; FDEV->jfile_num - 5; i++)
+        //        bzero(FDEV->entries[i].data, FDEV->entries[i].bytes);
+
         bdev.release(&bdev);
 
         bdev.init(&bdev);
-        
+
         for (int i = 0; i < FDEV->jfile_num; i++) {
                 value = FDEV->entries[i].read_preamble(FDEV->entries + i);
                 ck_assert(value == TEST_PREAMBLE);
         }
 
         bdev.release(&bdev);
+         /*** delete JPEG after test ***/
+         for (int i = 0; i < TESTFILE_NUM; i++) {
+                 snprintf(path, PATH_MAX, "%s/pic%d.jpg", TESTDIR_NAME, i);
+                 fprintf(stderr, "DEST %s\n", path);
+                 delete_jpeg(path);
+         }
+         /******************************/
 END_TEST
 
 static Suite* jstegdev_suite(void)

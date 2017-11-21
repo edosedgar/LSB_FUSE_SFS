@@ -68,7 +68,7 @@ static pthread_rwlock_t index_lock;
 } while(0)
 
 #define DO_OPER(num)                        \
-    (semop(semaphores, sem_ops, (num))) 
+    (semop(semaphores, sem_ops, (num)))
 
 /*
  * Operations under semaphores
@@ -79,7 +79,7 @@ static pthread_rwlock_t index_lock;
 
 /*
 * Create array of operations
-*/ 
+*/
 struct sembuf sem_ops[MAX_OPER_NUM];
 
 /* +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
@@ -93,7 +93,7 @@ sfs_unit* sfs_description = NULL;
 /* +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 
 static inline int index_lock_init() {
-        return pthread_rwlock_init(&(index_lock), NULL); 
+        return pthread_rwlock_init(&(index_lock), NULL);
 }
 static inline void index_rdlock() {
         pthread_rwlock_rdlock(&(index_lock));
@@ -109,9 +109,9 @@ static inline int index_lock_destroy() {
 }
 /* +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 
-static void usage(unsigned status) 
+static void usage(unsigned status)
 {
-        if (status != EXIT_SUCCESS) 
+        if (status != EXIT_SUCCESS)
                 fprintf(stderr, "Try 'fusesfs -h' for more information.\n");
         else {
                 printf("Usage: fusesfs [OPTIONS] IMAGE DIRECTORY\n");
@@ -121,10 +121,10 @@ static void usage(unsigned status)
         exit(status);
 }
 
-static int try_to_lock_image(char* path) 
-{ 
+static int try_to_lock_image(char* path)
+{
         key_t key = ftok(path, 0);
-        int semaphores = semget(key, SEM_NUM, IPC_CREAT | ACCESS_FLAGS); 
+        int semaphores = semget(key, SEM_NUM, IPC_CREAT | ACCESS_FLAGS);
 
         /*
          * V(LOCK_IMAGE) if no zero the out
@@ -133,14 +133,14 @@ static int try_to_lock_image(char* path)
         ADD_OPER(1, LOCK_IMAGE_SEM,  V, SEM_UNDO);
 
         if (DO_OPER(2) == -1)
-               return -1; 
+               return -1;
         return 0;
 }
 
 /* +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 /* +++++++++++++++++++++++++++++ End of functions ++++++++++++++++++++++++++ */
 /* +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
-static inline char* new_path(const char* path) 
+static inline char* new_path(const char* path)
 {
         char* cpath = (char*) calloc(PATH_MAX, sizeof(char));
         if (cpath == NULL) {
@@ -226,7 +226,7 @@ static void* fuse_sfs_init()
         if (dstat.st_mtime - sfs_description->time > 1) {
                 fprintf(stderr, "Modification time and timestamp are differ\n"
                                 "WE DON'T GIVE ANY WARRANTY!\n");
-         
+
                 while (Answer != 'Y' && Answer != 'n') {
                         fprintf(stderr, "Do you want to continue?\n"
                                         "Press [Y/n]\n");
@@ -243,22 +243,22 @@ static void* fuse_sfs_init()
         }
         */
 
-        read_data(sfs_description->bdev, 0, (uint8_t*) &mbr, 
+        read_data(sfs_description->bdev, 0, (uint8_t*) &mbr,
                   sizeof(struct mbr_t));
 
         data_size = mbr.data_area_size * sfs_description->bdev->block_size;
         free_size = scan_del_file_list(sfs_description, &entr);
         if (free_size == -1) {
-                fprintf(stderr, "Allocation of free space was " 
+                fprintf(stderr, "Allocation of free space was "
                                 "completely broken\n"
                                 "Filesystem cannot be mounted\n");
                 bdev->sync(bdev);
                 bdev->release(bdev);
                 goto FAIL_EXIT;
         }
- 
+
         used_size = scan_used_space(sfs_description, &entr);
-        
+
         if (data_size != free_size + used_size) {
                 fprintf(stderr, "Allocation of free space was broken\n"
                                 "free size = %lu\n"
@@ -278,8 +278,8 @@ static void* fuse_sfs_init()
                 }
         }
         fix_non_del_file(sfs_description, &entr);
- 
-        /* 
+
+        /*
          * Create inode container
          */
         if (inode_map_create() == -1) {
@@ -315,10 +315,10 @@ static void fuse_sfs_destroy(void* param)
         free(sfs_description->bdev->dev_data);
         free(sfs_description->bdev);
         free(sfs_description);
-        
+
 }
 
-static int fuse_sfs_getattr(const char* path, struct stat *stbuf) 
+static int fuse_sfs_getattr(const char* path, struct stat *stbuf)
 {
         SFS_TRACE("GETATTR path %s", path);
         path++;
@@ -384,8 +384,8 @@ static int fuse_sfs_release(const char* path, struct fuse_file_info* fi)
                 set_pino(vino, 0);
         }
         clr_openbit(vino);
-        return 0;                
-};        
+        return 0;
+};
 
 static int fuse_sfs_flush(const char *path, struct fuse_file_info* fi)
 {
@@ -394,7 +394,7 @@ static int fuse_sfs_flush(const char *path, struct fuse_file_info* fi)
         return 0;
 }
 
-static int fuse_sfs_readdir(const char* path, void* buf, 
+static int fuse_sfs_readdir(const char* path, void* buf,
                             fuse_fill_dir_t filler, off_t offset,
                             struct fuse_file_info* fi)
 {
@@ -421,7 +421,7 @@ static int fuse_sfs_readdir(const char* path, void* buf,
                 memset(&st_buf, 0, sizeof(struct stat));
                 if (sfs_readdir(sfs_description, &iter) != 0) {
                         free(cpath);
-                        return -1; 
+                        return -1;
                 }
                 if (iter.filename == NULL)
                         break;
@@ -467,7 +467,7 @@ static int fuse_sfs_unlink(const char* path)
         path++;
         pino_t pino = 0;
         vino_t vino = 0;
-     
+
         if ((pino = sfs_unlink(sfs_description, path)) == 0) {
                 return -sfs_errno;
         }
@@ -483,7 +483,7 @@ static int fuse_sfs_unlink(const char* path)
                 if (sfs_delete(sfs_description, pino) == -1)
                         return -sfs_errno;
                 set_pino(vino, 0);
-        }  
+        }
 
         return 0;
 }
@@ -508,7 +508,7 @@ static int fuse_sfs_rename(const char* from, const char* to)
         pino_t old_pino = 0;
         pino_t pino = 0;
         vino_t vino = 0;
-        sfs_attr attr; 
+        sfs_attr attr;
         if ((old_pino = sfs_open(sfs_description, cpath_from)) == 0) {
                 goto RENAME_EXIT;
         }
@@ -529,7 +529,7 @@ static int fuse_sfs_rename(const char* from, const char* to)
                 }
         } else {
 
-                if ((pino = sfs_rename(sfs_description, old_pino, 
+                if ((pino = sfs_rename(sfs_description, old_pino,
                                        cpath_to)) == 0) {
                         goto RENAME_EXIT;
                 }
@@ -555,22 +555,22 @@ RENAME_EXIT:
         return -sfs_errno;
 }
 
-static int fuse_sfs_read(const char* path, char *buf, size_t size, 
+static int fuse_sfs_read(const char* path, char *buf, size_t size,
                          off_t offset, struct fuse_file_info* fi)
 {
         SFS_TRACE("READ: Path: %s Virtual inode %lu Physical inode %lu",
                   path, fi->fh, get_pino(fi->fh));
         int num_byte = 0;
-        if ((num_byte = sfs_read(sfs_description, get_pino(fi->fh), 
+        if ((num_byte = sfs_read(sfs_description, get_pino(fi->fh),
                                  buf, size, offset)) == -1) {
                return -sfs_errno;
-        } 
+        }
         return num_byte;
 }
 
-static int fuse_sfs_write(const char* path, const char *buf, size_t size, 
+static int fuse_sfs_write(const char* path, const char *buf, size_t size,
                           off_t offset, struct fuse_file_info* fi)
-{ 
+{
         SFS_TRACE("WRITE: Path: %s Virtual inode %lu Physical inode %lu",
                   path, fi->fh, get_pino(fi->fh));
         int num_byte = 0;
@@ -582,7 +582,7 @@ static int fuse_sfs_write(const char* path, const char *buf, size_t size,
         return num_byte;
 }
 
-static int fuse_sfs_mknod(const char* path, mode_t mode, dev_t rdev) 
+static int fuse_sfs_mknod(const char* path, mode_t mode, dev_t rdev)
 {
         SFS_TRACE("MKNOOOOOOD path %s", path);
         if (!(mode & S_IFREG))
@@ -617,7 +617,7 @@ static int fuse_sfs_utime(const char* path, struct utimbuf* buf)
         return 0;
 }
 
-static int fuse_sfs_truncate(const char* path, off_t length) 
+static int fuse_sfs_truncate(const char* path, off_t length)
 {
         path++;
         pino_t pino = sfs_open(sfs_description, path);
@@ -629,10 +629,10 @@ static int fuse_sfs_truncate(const char* path, off_t length)
         return 0;
 }
 
-static int fuse_sfs_ftruncate(const char* path, off_t length, 
-                              struct fuse_file_info* fi) 
+static int fuse_sfs_ftruncate(const char* path, off_t length,
+                              struct fuse_file_info* fi)
 {
-        SFS_TRACE("FTRUNCATE path %s Virtual inode %lu", 
+        SFS_TRACE("FTRUNCATE path %s Virtual inode %lu",
                    path, get_pino(fi->fh));
         if (sfs_truncate(sfs_description, get_pino(fi->fh), length) != 0)
                 return -sfs_errno;
@@ -682,8 +682,8 @@ static int fuse_sfs_releasedir(const char* path, struct fuse_file_info* fi)
                 set_pino(vino, 0);
         }
         free(cpath);
-        return 0;                
-       
+        return 0;
+
 }
 
 static int fuse_sfs_statfs(const char* path, struct statvfs* stfs)
@@ -709,19 +709,19 @@ static int fuse_sfs_statfs(const char* path, struct statvfs* stfs)
 }
 
 static struct fuse_operations sfs_oper = {
-        .init           = fuse_sfs_init,   
+        .init           = fuse_sfs_init,
         .destroy        = fuse_sfs_destroy,
         .getattr        = fuse_sfs_getattr,
-        .flush          = fuse_sfs_flush,   
+        .flush          = fuse_sfs_flush,
         .readdir        = fuse_sfs_readdir,
         .mkdir          = fuse_sfs_mkdir,
-        .unlink         = fuse_sfs_unlink, 
+        .unlink         = fuse_sfs_unlink,
         .rmdir          = fuse_sfs_rmdir,
         .mknod          = fuse_sfs_mknod,
         .chmod          = fuse_sfs_chmod,
         .chown          = fuse_sfs_chown,
         .utime          = fuse_sfs_utime,
-        .rename         = fuse_sfs_rename, 
+        .rename         = fuse_sfs_rename,
         .read           = fuse_sfs_read,
         .write          = fuse_sfs_write,
         .truncate       = fuse_sfs_truncate,
@@ -742,7 +742,7 @@ int main(int argc, char* argv[]) {
         struct stat st;
         setlocale(LC_ALL, "");
         /*
-         * Read option 
+         * Read option
          */
         char opt = 0;
         while ((opt = getopt(argc, argv, "+h")) > 0) {
@@ -759,7 +759,7 @@ int main(int argc, char* argv[]) {
         /*
          * Check on exist remaining args
          */
-        if ((argc - optind) < 2) 
+        if ((argc - optind) < 2)
                usage(EXIT_FAILURE);
         /*
          * Check on exist image
@@ -767,7 +767,7 @@ int main(int argc, char* argv[]) {
         /*
         image_fd = open(argv[optind], O_RDWR);
         if (image_fd == -1) {
-                fprintf(stderr, "Supplied image file name: \"%s\"\n", 
+                fprintf(stderr, "Supplied image file name: \"%s\"\n",
                                 argv[optind]);
                 perror("Can`t open image file");
                 exit(EXIT_FAILURE);
@@ -782,7 +782,7 @@ int main(int argc, char* argv[]) {
                 perror("Can't found mount directory");
                 exit(EXIT_FAILURE);
         };
-        /* 
+        /*
          * Check on lock file
          */
         if (try_to_lock_image(argv[optind]) == -1) {

@@ -27,6 +27,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <bdev_jsteg/jstegerr.h>
 #include <bdev_jsteg/jstegentry.h>
+#include <bdev_jsteg/addr_space.h>
 #include "blockdev.h"
 
 typedef struct filedev_data_t {
@@ -34,6 +35,7 @@ typedef struct filedev_data_t {
 		jdev_entry* entries;
 		DIR* dir;
 		size_t jfile_num;
+		addr_space_handler_t* addr_space;
 } filedev_data;
 
 

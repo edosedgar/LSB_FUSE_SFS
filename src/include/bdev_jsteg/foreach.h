@@ -21,7 +21,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <bdev_jsteg/jstegentry.h>
 
-/* 
+/*
  * ci between 0 and number of image component
  * by between 0 and compptr->height_in_blocks
  * bx between 0 and compptr->width_in_blocks
@@ -33,12 +33,12 @@ next_row(jdecompress_state* cinfo)
 {
 	cinfo->by++;
 	while (cinfo->by < cinfo->pb.comp_info[cinfo->ci].height_in_blocks) {
-		cinfo->row_ptrs[cinfo->ci] = (cinfo->pb.mem->access_virt_barray)((j_common_ptr)cinfo, 
-								cinfo->coeffs[cinfo->ci], 
-								cinfo->by, 
-								(JDIMENSION)1, 
+		cinfo->row_ptrs[cinfo->ci] = (cinfo->pb.mem->access_virt_barray)((j_common_ptr)cinfo,
+								cinfo->coeffs[cinfo->ci],
+								cinfo->by,
+								(JDIMENSION)1,
 								FALSE);
-	
+
 		return cinfo->row_ptrs[cinfo->ci][0];
 	}
 
@@ -49,10 +49,10 @@ inline LOCAL(JBLOCKROW)
 initial_row(jdecompress_state* cinfo)
 {
 	cinfo->by = 0;
-	cinfo->row_ptrs[cinfo->ci] = (cinfo->pb.mem->access_virt_barray)((j_common_ptr)cinfo, 
-								cinfo->coeffs[cinfo->ci], 
-								0, 
-								(JDIMENSION)1, 
+	cinfo->row_ptrs[cinfo->ci] = (cinfo->pb.mem->access_virt_barray)((j_common_ptr)cinfo,
+								cinfo->coeffs[cinfo->ci],
+								0,
+								(JDIMENSION)1,
 								FALSE);
 
 	return cinfo->row_ptrs[cinfo->ci][0];
@@ -62,7 +62,7 @@ inline LOCAL(JCOEFPTR)
 initial_block(jdecompress_state* cinfo, JCOEFPTR* it)
 {
 	cinfo->bx = 0;
-	*it = cinfo->row_ptrs[cinfo->ci][0][0]; 
+	*it = cinfo->row_ptrs[cinfo->ci][0][0];
 	return cinfo->row_ptrs[cinfo->ci][0][0];
 }
 
@@ -91,7 +91,7 @@ for (cinfo.ci = 0; cinfo.ci < cinfo.pb.num_components; cinfo.ci++) \
 			 //Manipulate DCT coefficients here
 
 
-/* iterate over coeffecients in DCT table 
+/* iterate over coeffecients in DCT table
    which greater than DCT_MIN_VALUE */
 #define Foreach_VDCT_coeff(it, cinfo) \
 Foreach_DCT_coeff(it, cinfo)  \

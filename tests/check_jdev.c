@@ -1,6 +1,6 @@
 #include <check.h>
 #include <bdev_jsteg/jstegdev.h>
-#include "tests/create_jpeg.h" 
+#include "tests/create_jpeg.h"
 
 #include <stddef.h>
 #include <stdlib.h>
@@ -10,7 +10,7 @@
 
 #define TESTDIR_NAME "pictures"
 #define TESTFILE_NUM 3
-#define BLOCK_SIZE 255
+#define BLOCK_SIZE 280
 #define SEED 123
 #define NEW_FILES 3
 
@@ -43,7 +43,8 @@ START_TEST(test_jdev_build)
                 ck_assert(value == i);
                 ck_assert(value == FDEV->entries[i].jindex);
 
-                size += FDEV->entries[i].bytes;
+                addr_space_handler_t* addr_space = FDEV->addr_space;
+                size += addr_space->size_rev_transform(FDEV->entries[i].bytes);
         }
         fprintf(stderr, "bdev.size %lu\n", bdev.size);
         fprintf(stderr, "size %lu\n", size);
@@ -83,9 +84,8 @@ START_TEST(test_jdev_init)
 
         /**create new files before init**/
         char path[PATH_MAX];
-        srand(SEED);
         for (int i = 0; i < NEW_FILES; i++) {
-                snprintf(path, PATH_MAX, "%s/pic%d.jpg", TESTDIR_NAME, rand());
+                snprintf(path, PATH_MAX, "%s/pic%d.jpg", TESTDIR_NAME, i);
                 fprintf(stderr, "SOURCE %s\n", path);
                 create_jpeg(path);
         }
@@ -113,9 +113,8 @@ START_TEST(test_jdev_init)
         bdev.release(&bdev);
 
         /*** delete JPEG after test ***/
-        srand(SEED);
         for (int i = 0; i < NEW_FILES; i++) {
-                snprintf(path, PATH_MAX, "%s/pic%d.jpg", TESTDIR_NAME, rand());
+                snprintf(path, PATH_MAX, "%s/pic%d.jpg", TESTDIR_NAME, i);
                 fprintf(stderr, "DEST %s\n", path);
                 delete_jpeg(path);
         }

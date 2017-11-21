@@ -27,11 +27,11 @@ typedef size_t   bnum_t;
 
 
 #define JMAX_FILE 	(1<<16) // max number of file
-#define DCT_MIN_VALUE 	(1<<3) // min value of DCT coeff 
+#define DCT_MIN_VALUE 	(1<<4) // min value of DCT coeff
 
-#define LSB 		(1<<1) // number of mutable bits, 1 or 2
+#define LSB 		(1<<0) // number of mutable bits, 1 or 2
 #define LSBF 		(8 / LSB) // LSB frequency
-#define SB_BITMASK 	((1<<LSB)-1) // 0x3 - 2 significant bits, 
+#define SB_BITMASK 	((1<<LSB)-1) // 0x3 - 2 significant bits,
 				// 0x1 - 1 bit
 #define PREAMBLE_SIZE 	(32 / LSB) // preamble size = 4 x 4 (2 bits)
 

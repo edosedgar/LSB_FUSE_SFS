@@ -274,7 +274,7 @@ int main(int argc, char* argv[]) {
         sfs_opts.index_size = index_size;
         sfs_opts.total_block = total_blocks;
         sfs_opts.reserved_size = rsrvd_size;
-        sfs_opts.block_size = (size_t)log2(block_size) - BEGIN_POWER_OF_BS;
+        sfs_opts.block_size = 448;//512;//(size_t)log2(block_size) - BEGIN_POWER_OF_BS;
         if (label != NULL)
                 strcpy(sfs_opts.label, label);
         else

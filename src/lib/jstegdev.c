@@ -25,21 +25,53 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <bdev_jsteg/jstegdev.h>
 #include <bdev_jsteg/js_debug.h>
+#include <bdev_jsteg/addr_space.h>
 
 #define FDEV ((filedev_data*) bdev->dev_data)
 
 int current_level = DEFAULT_LEVEL;
+
+const addr_space_handler_t addr_spaces[] = {
+        {SIMPLE_ADDR,
+                simple_size_transform,
+                simple_size_rev_transform,
+                simple_embed,
+                simple_extract,
+                SIMPLE_GRAIN_SIZE},
+        {HAMMING_64_ADDR,
+                hamming_64_size_transform,
+                hamming_64_size_rev_transform,
+                hamming_64_embed,
+                hamming_64_extract,
+                HAMMING_GRAIN_SIZE},
+        {NONE_ADDR, NULL, NULL, NULL, NULL}
+};
+
+LOCAL(addr_space_handler_t*)
+get_addr_space_handler(addr_transform_t type) {
+        addr_space_handler_t* ptr = (addr_space_handler_t*)addr_spaces;
+
+        while (ptr->type != NONE_ADDR) {
+                if (ptr->type == type)
+                        return ptr;
+                ptr++;
+        }
+
+        return NULL;
+}
 
 LOCAL(int)
 jstegdev_start_construct(blockdev* bdev)
 {
         errno = 0;
 
+        FDEV->addr_space = get_addr_space_handler(HAMMING_64_ADDR);
+
         if (FDEV->dirname == NULL) {
                 errno = EINVAL;
                 return -1;
         }
-        fprintf(stderr, "DIRNAME: %s\n", FDEV->dirname);
+        js_info("DIRNAME: %s\n", FDEV->dirname);
         FDEV->dir = opendir(FDEV->dirname);
         if (FDEV->dir == NULL)
                 return -1;
@@ -99,11 +131,12 @@ jstegdev_start_construct(blockdev* bdev)
                         FDEV->jfile_num--;
                         continue;
                 }
+                entry->bytes -= (entry->bytes % (FDEV->addr_space)->grain_size);
                 FDEV->entries[idx] = *entry;
                 idx++;
         }
 
-        js_debug("File number after second check:%lu\n", FDEV->jfile_num);
+        js_debug("File number after second check:%lu", FDEV->jfile_num);
         if (FDEV->jfile_num <= 0) {
                 return -1;
         }
@@ -132,13 +165,16 @@ jstegdev_build(blockdev* bdev)
         if (jstegdev_start_construct(bdev) != 0)
                 return -1;
 
+        addr_space_handler_t* addr_space = FDEV->addr_space;
+
         // calculate size of the block device
         bdev->size = 0;
         for (int i = 0; i < FDEV->jfile_num; i++) {
-                bdev->size += FDEV->entries[i].bytes;
+                bdev->size
+                        += addr_space->size_rev_transform(FDEV->entries[i].bytes);
                 FDEV->entries[i].jindex = i;
         }
-
+        js_info("TRANSFORM SIZE %d\n", (int)bdev->size);
         if (bdev->size < bdev->block_size) {
                 errno = EINVAL;
                 return -1;
@@ -154,7 +190,9 @@ jstegdev_build(blockdev* bdev)
         js_info("size_before_align %d\n", (int)bdev->size);
 
         // align size of the block device to block_size
-        int rest = bdev->size % bdev->block_size;
+        int rest = addr_space->size_transform(bdev->size % bdev->block_size);
+        js_info("REMAIN SIZE %d\n", (int)(bdev->size % bdev->block_size));
+        js_info("REST SIZE %d\n", rest);
         js_debug("BLOCK SIZE: %lu\n", bdev->block_size);
         int last_jindex = FDEV->jfile_num - 1;
         if (rest) {
@@ -167,7 +205,8 @@ jstegdev_build(blockdev* bdev)
                 // swap entries
                 for (i = last_jindex; rest > FDEV->entries[i].bytes && i >= 0;
                      i--);
-                fprintf(stderr, "i num: %d\n", i);
+                js_info("i num: %d\n", i);
+                js_info("i bytes: %d\n", (int)FDEV->entries[i].bytes);
                 if (i < 0) {
                         FDEV->entries[last_jindex - 1].bytes
                                 -= (rest - FDEV->entries[last_jindex].bytes);
@@ -184,10 +223,10 @@ jstegdev_build(blockdev* bdev)
                 }
 
                 FDEV->entries[last_jindex].bytes -= rest;
-                bdev->size -= rest;
+                bdev->size -= addr_space->size_rev_transform(rest);
         }
-
-        fprintf(stderr, "FILE NUM: %lu\n", FDEV->jfile_num);
+        js_info("TRANSFORM SIZE %d\n", (int)bdev->size);
+        js_info("FILE NUM: %lu\n", FDEV->jfile_num);
         for (int i = 0; i < FDEV->jfile_num; i++) {
                 FDEV->entries[i].write_preamble(FDEV->entries + i);
                 js_debug("build jindex: %d", FDEV->entries[i].jindex);
@@ -235,16 +274,10 @@ jstegdev_init(blockdev* bdev)
         qsort(FDEV->entries, FDEV->jfile_num, sizeof(jdev_entry),
               sort_compare);
 
-        for (int i = 0; i < FDEV->jfile_num; i++)
-                js_debug("jindex %d %d\n", i, FDEV->entries[i].jindex);
-
         size_t old_file_num = FDEV->jfile_num;
         for (int i = 0; i < old_file_num; i++)
                 if (FDEV->entries[i].jindex < 0)
                         FDEV->jfile_num--;
-
-        for (int i = 0; i < FDEV->jfile_num; i++)
-                fprintf(stderr, "jindex %d %d\n", i, FDEV->entries[i].jindex);
 
         for (int i = 0; i < FDEV->jfile_num; i++)
                 if (FDEV->entries[i].jindex != i) {
@@ -299,7 +332,7 @@ comparator(const void* _key, const void* _item)
 }
 
 METHODDEF(size_t)
-jstegdev_write(blockdev* bdev, buf_t* buf, size_t buf_size, bnum_t block_num) 
+jstegdev_write(blockdev* bdev, buf_t* buf, size_t buf_size, bnum_t block_num)
 {
         int start_pos = 0;
         errno = 0;
@@ -324,7 +357,9 @@ jstegdev_write(blockdev* bdev, buf_t* buf, size_t buf_size, bnum_t block_num)
                 return -1;
         }
 
-        start_pos = block_num * bdev->block_size;
+        addr_space_handler_t* addr_space = FDEV->addr_space;
+        size_t embed_block_size = addr_space->size_transform(bdev->block_size);
+        start_pos = block_num * embed_block_size;
 
         jdev_entry* cur_entry = bsearch(&start_pos,
                                         FDEV->entries,
@@ -345,7 +380,7 @@ jstegdev_write(blockdev* bdev, buf_t* buf, size_t buf_size, bnum_t block_num)
 
 
         int written_bytes = 0;
-        int remained_bytes = buf_size;
+        int remained_bytes = addr_space->size_transform(buf_size);
         while (remained_bytes > 0) {
                 if (cur_entry == end) {
                         errno = EINVAL;
@@ -363,9 +398,9 @@ jstegdev_write(blockdev* bdev, buf_t* buf, size_t buf_size, bnum_t block_num)
                 written_bytes = remained_bytes < cur_entry->bytes - offset
                                 ? remained_bytes : cur_entry->bytes - offset;
 
-                memcpy(cur_entry->data + offset,
-                       buf + buf_size - remained_bytes, written_bytes);
-
+                addr_space->mem_embed(cur_entry->data + offset,
+                        buf + buf_size - addr_space->size_rev_transform(remained_bytes),
+                        written_bytes);
                 remained_bytes -= written_bytes;
 
                 cur_entry++;
@@ -402,7 +437,10 @@ jstegdev_read(blockdev* bdev, buf_t* buf, size_t buf_size, bnum_t block_num)
                 return -1;
         }
 
-        start_pos = block_num * bdev->block_size;
+        addr_space_handler_t* addr_space = FDEV->addr_space;
+        size_t embed_block_size = addr_space->size_transform(bdev->block_size);
+
+        start_pos = block_num * embed_block_size;
         jdev_entry* cur_entry = bsearch(&start_pos,
                                         FDEV->entries,
                                         FDEV->jfile_num,
@@ -416,9 +454,9 @@ jstegdev_read(blockdev* bdev, buf_t* buf, size_t buf_size, bnum_t block_num)
         int offset = start_pos - cur_entry->start;
         js_info("Read OFF %d\n", offset);
         int read_bytes = 0;
-        int remained_bytes = buf_size;
+        int remained_bytes = addr_space->size_transform(buf_size);
         while (remained_bytes > 0) {
-                js_info("Reamainder part\n");
+                js_info("Remainder part\n");
                 if (cur_entry == end) {
                         errno = EINVAL;
                         return -1;
@@ -433,8 +471,9 @@ jstegdev_read(blockdev* bdev, buf_t* buf, size_t buf_size, bnum_t block_num)
                 read_bytes = remained_bytes < cur_entry->bytes - offset
                                 ? remained_bytes : cur_entry->bytes - offset;
 
-                memcpy(buf + buf_size - remained_bytes,
-                       cur_entry->data + offset, read_bytes);
+                addr_space->mem_extract(buf + buf_size
+                                - addr_space->size_rev_transform(remained_bytes),
+                                cur_entry->data + offset, read_bytes);
 
                 remained_bytes -= read_bytes;
                 cur_entry++;
@@ -464,7 +503,6 @@ jstegdev_release(blockdev* bdev)
 METHODDEF(int)
 jstegdev_sync(blockdev* bdev)
 {
-        //fprintf(stderr, "SYNC\n");
         jdev_entry* entry;
         jdev_entry* end = FDEV->entries + FDEV->jfile_num;
 

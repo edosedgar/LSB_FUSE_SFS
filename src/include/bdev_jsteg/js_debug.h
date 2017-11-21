@@ -27,23 +27,32 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #define DEBUG (1)
 #define INFO  (2)
 
-#define DEFAULT_LEVEL UNSET
+#define DEFAULT_LEVEL DEBUG
 
 extern int current_level;
 
 #define js_error(fmt, ...) do {                         \
-        if (ERROR <= current_level)                     \
+        if (ERROR <= current_level) {                   \
+                fprintf(stderr, "[%s] : ", __func__);   \
                 fprintf(stderr, fmt, ##__VA_ARGS__);    \
+                fprintf(stderr, "\n\r");                \
+                }                                       \
         } while(0);
 
 #define js_debug(fmt, ...) do {                         \
-        if (DEBUG <= current_level)                     \
+        if (DEBUG <= current_level) {                   \
+                fprintf(stderr, "[%s] : ", __func__);   \
                 fprintf(stderr, fmt, ##__VA_ARGS__);    \
+                fprintf(stderr, "\n\r");                \
+                }                                       \
         } while(0);
 
 #define js_info(fmt, ...) do {                          \
-        if (INFO <= current_level)                      \
+        if (INFO <= current_level) {                    \
+                fprintf(stderr, "[%s] : ", __func__);   \
                 fprintf(stderr, fmt, ##__VA_ARGS__);    \
+                fprintf(stderr, "\n\r");                \
+                }                                       \
         } while(0);
 
 #endif

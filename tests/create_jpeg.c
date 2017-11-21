@@ -9,13 +9,13 @@
 void create_jpeg(const char* path) {
         FILE* output = fopen(path, "w+");
 
-        int width = 400;
-        int height = 400;
+        int width = MIN_WIDTH + rand() % (MAX_WIDTH - MIN_WIDTH);
+        int height = MIN_HEIGHT + rand() % (MAX_HEIGHT - MIN_HEIGHT);
         int quality = 75;
         char *scr=(char*)malloc(width*height*3);
 
         for (int i=0;i<width;i++)
-            for (int j = 0;j < height; j++) {
+            for (int j = 0; j < height; j++) {
                 char *p = scr + j * width * 3 + i * 3;
                 *p = i + j;
                 p++;

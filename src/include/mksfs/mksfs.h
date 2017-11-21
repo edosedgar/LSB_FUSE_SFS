@@ -23,7 +23,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <sfs/entry.h>
 
 #define VOLUME_NAME_SIZE (size_t)52
-#define DEFAULT_BLOCK_SIZE (size_t)512
+#define DEFAULT_BLOCK_SIZE (size_t)448
 #define DEFAULT_MIN_BLOCK (size_t)256
 #define DEFAULT_INDEX_PERCENT 5UL
 #define MBR_SIZE (size_t)512

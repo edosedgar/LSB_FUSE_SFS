@@ -54,21 +54,21 @@ jdecompress_destroy(jdecompress_state* cinfo_ptr);
 
 
 typedef struct jsteg_entry_t {
-		int32_t jindex;
-		FILE* file;
-		
-		size_t start;
-		size_t bytes;
+        int32_t jindex;
+        FILE* file;
 
-		int is_available;
+        size_t start;
+        size_t bytes;
 
-		byte_t* data;
+        int is_available;
 
-		void (*read_data) (struct jsteg_entry_t* jentry);
-		void (*write_data) (struct jsteg_entry_t* jentry);
-		void (*jentry_release) (struct jsteg_entry_t* jentry);
-		void (*write_preamble) (struct jsteg_entry_t* jentry);
-		int (*read_preamble) (struct jsteg_entry_t* jentry);
+        byte_t* data;
+
+        void (*read_data) (struct jsteg_entry_t* jentry);
+        void (*write_data) (struct jsteg_entry_t* jentry);
+        void (*jentry_release) (struct jsteg_entry_t* jentry);
+        void (*write_preamble) (struct jsteg_entry_t* jentry);
+        int (*read_preamble) (struct jsteg_entry_t* jentry);
 } jdev_entry;
 
 GLOBAL(jdev_entry*)

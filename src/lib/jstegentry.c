@@ -17,7 +17,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 #include <stdlib.h>
-#include <strings.h>
+#include <string.h>
+#include <assert.h>
 
 #include <bdev_jsteg/jstegentry.h>
 #include <bdev_jsteg/foreach.h>
@@ -75,18 +76,23 @@ read_preamble(jdev_entry* entry)
         pr.preamble = 0;
 
         JCOEFPTR it;
+        uint16_t rmask = SB_BITMASK;
+        uint32_t value;
         Foreach_VDCT_coeff(it, dinfo) {
                 if (pos < PREAMBLE_SIZE) {
-                        pr.preamble |= (*it & SB_BITMASK)
-                                        << ((pos % PREAMBLE_SIZE) * LSB);
+                        //fprintf(stderr, "read last bits %ud\n", *it & rmask);
+                        //fprintf(stderr, "read bits %d\n", *it);
+                        value = ((*it & rmask)
+                                        << (pos * LSB));
+                        pr.preamble |= value;
                         pos++;
                 }
                 break;
         }
 
         int jindex = PREAMBLE_INDEX(pr);
-        fprintf(stderr, "start %d end %d\n", pr.bytes[0], pr.bytes[3]);
-        fprintf(stderr, "read_preamble %d\n", *(uint16_t*)((pr).bytes + 1));
+        //fprintf(stderr, "start %d end %d\n", pr.bytes[0], pr.bytes[3]);
+        //fprintf(stderr, "read_preamble %d\n", *(uint16_t*)((pr).bytes + 1));
 
         jdecompress_destroy(&dinfo);
 
@@ -104,7 +110,7 @@ read_file(jdev_entry* entry)
         jdecompress_create(&dinfo, entry->file);
 
         // only last LSB bits of DCT coeff are used
-        int i = 0;      
+        int i = 0;
         int pos = 0;
         byte_t value;
         JCOEFPTR it;
@@ -145,20 +151,29 @@ write_preamble(jdev_entry* entry)
         // write preamble
         struct preamble_t pr;
         PREAMBLE_INIT(pr, entry->jindex);
-        fprintf(stderr, "PREAMBLE_INIT: %d\n", (int)pr.bytes[0]);
+        //fprintf(stderr, "PREAMBLE_INIT: %d\n", (int)pr.bytes[0]);
+        //fprintf(stderr, "value: %d\n", *(uint16_t*)((pr).bytes + 1));
+        //fprintf(stderr, "PREAMBLE_END: %d\n", (int)pr.bytes[3]);
 
         int pos = 0;
 
         JCOEFPTR it;
         uint16_t wmask = ~SB_BITMASK;
+        uint16_t value;
+        uint16_t old_it, new_it;
         // write preamble
         Foreach_VDCT_coeff(it, dinfo) {
                 if (pos < PREAMBLE_SIZE) {
+                        //fprintf(stderr, "write before bits %d\n", *it);
+                        old_it = (*it & wmask);
                         *it &= wmask;
-                        *it |= ((pr.preamble >> ((pos % PREAMBLE_SIZE) * LSB))
-                                & SB_BITMASK);
-
+                        value = ((pr.preamble >> (pos * LSB))
+                                        & SB_BITMASK);
+                        *it |= value;
+                        //fprintf(stderr, "write after bits %d\n", *it);
+                        new_it = (*it & wmask);
                         pos++;
+                        assert(memcmp(&old_it, &new_it, sizeof(uint16_t)) == 0);
                 }
 
                 break;
