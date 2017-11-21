@@ -24,7 +24,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <sfs/io.h>
 #include <sfs/debug.h>
 
-off_t entry_parse(sfs_unit* fs, 
+off_t entry_parse(sfs_unit* fs,
                   entry* entr,
                   int (*callback) (sfs_unit* fs, entry* entr, off_t entry_off, void* data),
                   void* data)
@@ -40,7 +40,7 @@ off_t entry_parse(sfs_unit* fs,
                         return 0;
                 }
 
-                if ((callback(fs, entr, start, data)) != 0) 
+                if ((callback(fs, entr, start, data)) != 0)
                         return start;
 
                 start += INDEX_ENTRY_SIZE;

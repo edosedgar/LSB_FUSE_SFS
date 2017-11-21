@@ -30,13 +30,13 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 static int search_begin(sfs_unit* fs, entry* entr, off_t entry_off, void* data)
 {
-        if (entr->entry_type != DEL_FILE_ENTRY) 
+        if (entr->entry_type != DEL_FILE_ENTRY)
                 return 0;
         if (PREV_DEL(entr) == 0)
                 return 1;
 
         return 0;
-}       
+}
 
 int sfs_init(sfs_unit* fs, blockdev* bdev)
 {
@@ -56,17 +56,17 @@ int sfs_init(sfs_unit* fs, blockdev* bdev)
         entry entr;
         SFS_TRACE("Read MBR fields from image");
         SET_ERRNO(EIO);
-        /* Read data_area_size */ 
-        if (read_data(bdev, offsetof(struct mbr_t, data_area_size), 
+        /* Read data_area_size */
+        if (read_data(bdev, offsetof(struct mbr_t, data_area_size),
                   (uint8_t*)(&data_area_size), sizeof(data_area_size)) == -1)
                 return -1;
         SFS_TRACE("#################CHECKSUM");
         /* Read index area size */
-        if (read_data(bdev, offsetof(struct mbr_t, index_area_size), 
+        if (read_data(bdev, offsetof(struct mbr_t, index_area_size),
                   (uint8_t*)(&index_area_size), sizeof(index_area_size)) == -1)
                 return -1;
         /* Read reserved area size */
-        if (read_data(bdev, offsetof(struct mbr_t, reserved_size), 
+        if (read_data(bdev, offsetof(struct mbr_t, reserved_size),
                   (uint8_t*)(&reserved_size), sizeof(uint32_t)) == -1)
                 return -1;
         /* Read magic number */
@@ -82,7 +82,7 @@ int sfs_init(sfs_unit* fs, blockdev* bdev)
                   (uint8_t*)(&checksum), sizeof(checksum)) == -1)
                 return -1;
         /* Read total size */
-        if (read_data(bdev, offsetof(struct mbr_t, total_size), 
+        if (read_data(bdev, offsetof(struct mbr_t, total_size),
                   (uint8_t*)(&total_size), sizeof(total_size)) == -1)
                 return -1;
         /* Read block size */
@@ -94,20 +94,20 @@ int sfs_init(sfs_unit* fs, blockdev* bdev)
         /* Do you speak GNU/Linux or Linux? You should respect Stallman */
         if (checksum != calc_checksum(magic_number, &sfs_v, &total_size,
                                       &reserved_size, &b_size_p2)) {
-                SET_ERRNO(EINVAL);             
+                SET_ERRNO(EINVAL);
                 return -1;
         }
         SFS_TRACE("Calculate all sizes");
         block_size <<= b_size_p2;
         SFS_TRACE("Block size: %lu", block_size);
-        SFS_TRACE("RESERVED size: %u", reserved_size); 
+        SFS_TRACE("RESERVED size: %u", reserved_size);
         reserved_size *= block_size;
         data_area_size *= block_size;
         fs->entry_start = reserved_size + data_area_size;
         fs->vol_ident = fs->entry_start + index_area_size - INDEX_ENTRY_SIZE;
         fs->bdev = bdev;
         /* Try to recognize zero folder */
-        if (read_data(bdev, fs->entry_start + 2*INDEX_ENTRY_SIZE, 
+        if (read_data(bdev, fs->entry_start + 2*INDEX_ENTRY_SIZE,
                       &zero_folder_entry, sizeof(zero_folder_entry)) == -1) {
                 SET_ERRNO(EINVAL);
                 return -1;
@@ -119,7 +119,7 @@ int sfs_init(sfs_unit* fs, blockdev* bdev)
 
         fs->del_begin = entry_parse(fs, &entr, search_begin, NULL);
 
-        /* Read zero dir name */ 
+        /* Read zero dir name */
         if (read_data(bdev, fs->entry_start + 2*INDEX_ENTRY_SIZE +
                       offsetof(dir_entry, dir_name), &zero_folder_entry,
                       sizeof(zero_folder_entry)) == -1) {
@@ -129,17 +129,17 @@ int sfs_init(sfs_unit* fs, blockdev* bdev)
         if (zero_folder_entry != 0) {
                 SET_ERRNO(EINVAL);
                 return -1;
-        } 
+        }
         /* Read timestamp */
-        if (read_data(bdev, offsetof(vol_ident_entry, time_stamp) + 
-                            fs->vol_ident, (uint8_t*)&(fs->time), 
+        if (read_data(bdev, offsetof(vol_ident_entry, time_stamp) +
+                            fs->vol_ident, (uint8_t*)&(fs->time),
                             sizeof(fs->time)) == -1) {
                 SET_ERRNO(EIO);
                 return -1;
         }
         /* Write zero to time stamp */
-        if (write_data(bdev, offsetof(vol_ident_entry, time_stamp) + 
-                             fs->vol_ident, (uint8_t*)&(new_timestamp), 
+        if (write_data(bdev, offsetof(vol_ident_entry, time_stamp) +
+                             fs->vol_ident, (uint8_t*)&(new_timestamp),
                              sizeof(new_timestamp)) == -1) {
                 SET_ERRNO(EIO);
                 return -1;

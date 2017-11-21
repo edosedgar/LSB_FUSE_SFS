@@ -110,7 +110,7 @@ size_t write_data(blockdev* dev, off_t offset, uint8_t* data, size_t size)
                 IO_TRACE("Write block: %lu", bnum);
                 if (dev->write(dev, buf, bsize, bnum) == -1) {
                         SET_ERRNO(EIO);
-                        IO_TRACE("Writing failed\n");   
+                        IO_TRACE("Writing failed\n");
                         return -1;
                 }
                 dev->buf_num = -1;
@@ -121,7 +121,7 @@ size_t write_data(blockdev* dev, off_t offset, uint8_t* data, size_t size)
         IO_TRACE("Write block: %lu", bnum);
         if (dev->write(dev, buf, bsize, bnum) == -1) {
                 SET_ERRNO(EIO);
-                IO_TRACE("Writing failed\n");   
+                IO_TRACE("Writing failed\n");
                 return -1;
         }
         size -= bsize - cur_pos;
@@ -133,7 +133,7 @@ size_t write_data(blockdev* dev, off_t offset, uint8_t* data, size_t size)
                 IO_TRACE("Write block: %lu", bnum);
                 if (dev->write(dev, buf, bsize, bnum) == -1) {
                         SET_ERRNO(EIO);
-                        IO_TRACE("Writing failed\n");   
+                        IO_TRACE("Writing failed\n");
                         return -1;
                 }
                 bnum++;
@@ -148,13 +148,13 @@ size_t write_data(blockdev* dev, off_t offset, uint8_t* data, size_t size)
         IO_TRACE("Read block: %lu", bnum);
         if (dev->read(dev, buf, bsize, bnum) == -1) {
                 SET_ERRNO(EIO);
-                IO_TRACE("Reading failed\n");   
+                IO_TRACE("Reading failed\n");
                 return -1;
         }
         memcpy(buf, data, size);
         if (dev->write(dev, buf, bsize, bnum) == -1) {
                 SET_ERRNO(EIO);
-                IO_TRACE("Writing failed\n");   
+                IO_TRACE("Writing failed\n");
                 return -1;
         }
 
@@ -189,7 +189,7 @@ size_t write_entry(blockdev* dev, off_t offset, entry* entry)
         return write_data(dev, offset, (uint8_t*)entry, INDEX_ENTRY_SIZE);
 }
 
-int copy_block(blockdev* dev, off_t src, off_t dest, size_t size) 
+int copy_block(blockdev* dev, off_t src, off_t dest, size_t size)
 {
         buf_t* buf = dev->buf;
         size_t bsize = dev->block_size;

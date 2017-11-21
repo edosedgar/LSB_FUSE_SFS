@@ -62,8 +62,8 @@ int image_create(struct sfs_options sfs_opts, blockdev* bdev)
         del_file_entry del_entry;
         dir_entry zero_dir;
         SFS_TRACE("Calculating aligned index area position.");
-        size_t g_offset_start = sfs_opts.total_block * block_size - 
-                                sfs_opts.index_size; 
+        size_t g_offset_start = sfs_opts.total_block * block_size -
+                                sfs_opts.index_size;
         size_t g_offset_vol =   sfs_opts.total_block * block_size -
                                 INDEX_ENTRY_SIZE;
 
